@@ -50,11 +50,17 @@ class DebianFeed(SecurityFeed):
         self.db.commit()
 
     def _update_repository(self):
-        return
-        number = self.client.update("%s/svn" % self.cache_location)[0].number
+        repo_path = "%s/svn" % self.cache_location
+        number = -1
+        try:
+            os.makedirs(repo_path)
+        except:
+            pass
 
-        if number == -1: # the repo doesn't exist yet in the cache
-            self.client.checkout(self.secure_testing_url, "%s/svn" % self.cache_location)
+        number = self.client.update(repo_path)[0].number
+
+        if number == -1 or not os.path.isfile('%s/svn/data/DSA/list' % self.cache_location): # the repo doesn't exist yet in the cache
+            self.client.checkout(self.secure_testing_url, repo_path)
 
     def _source_package_to_binary_packages(self, source_package, release):
         """
