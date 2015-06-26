@@ -1,53 +1,31 @@
-#!/usr/bin/env python
-
-import re
 import os
-import sqlite3
+import re
 
 import deb822
 import pysvn
+import pytz
 import requests
 
-from base import SecurityFeed
+from dateutil.parser import parse as dateutil_parse
+
+from django.core.management.base import BaseCommand, CommandError
+from advisories.models import *
+from django.conf import settings
+
+class SecurityFeed(object):
+    pass
 
 class DebianFeed(SecurityFeed):
 
     def __init__(self, secure_testing_url=None, cache_location=None, releases=None):
         self.client = pysvn.Client()
         self.secure_testing_url = secure_testing_url or 'svn://anonscm.debian.org/svn/secure-testing'
-        self.cache_location = cache_location or '%s/.security-feed/dsa/cache' % os.environ['HOME']
+        self.cache_location = cache_location or '%s/advisory_cache/dsa' % settings.BASE_DIR
         self.releases = releases or (
             'squeeze',
             'wheezy',
             'jessie',
         )
-        self.db = sqlite3.connect('%s/db.sqlite3' % self.cache_location)
-        self.cur = self.db.cursor()
-        self.cur.execute("""
-            CREATE TABLE IF NOT EXISTS `advisories` (
-                `id`    INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-                `debian_id` TEXT,
-                `description`   TEXT
-            );
-        """)
-        self.cur.execute("""
-            CREATE TABLE IF NOT EXISTS `binary_packages` (
-                `id`    INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-                `advisory_id`   INTEGER NOT NULL,
-                `package`   TEXT NOT NULL,
-                `release`   TEXT NOT NULL
-            );
-        """)
-        self.cur.execute("""
-            CREATE TABLE IF NOT EXISTS `source_packages` (
-                `id`    INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-                `advisory_id`   INTEGER NOT NULL,
-                `package`   TEXT NOT NULL,
-                `release`   TEXT NOT NULL,
-                `safe_version`  TEXT NOT NULL
-            );
-        """)
-        self.db.commit()
 
     def _update_repository(self):
         repo_path = "%s/svn" % self.cache_location
@@ -83,6 +61,28 @@ class DebianFeed(SecurityFeed):
         binary_packages = deb822.Dsc(dsc_page.content)['Binary'].split()
         return [package.strip(', ') for package in binary_packages]
 
+    def _update_local_database(self):
+        svn_advisories = self._parse_svn_advisories()
+        new_advisories = set(svn_advisories) - set([advisory.upstream_id for advisory in Advisory.objects.all()])
+
+        print "%i new advisories to download" % len(new_advisories)
+
+        for advisory in new_advisories:
+            db_advisory = Advisory(upstream_id=advisory, source="debian", issued=svn_advisories[advisory]['issued'], short_description=svn_advisories[advisory]['description'])
+            db_advisory.save()
+            for package, versions in svn_advisories[advisory]['packages'].iteritems():
+                for release, version in versions.iteritems():
+                    db_srcpackage = SourcePackage(advisory=db_advisory, package=package, release=release, safe_version=version)
+                    db_srcpackage.save()                    
+                    try:
+                        binary_packages = self._source_package_to_binary_packages(package, release)
+                        for binary_package in binary_packages:
+                            db_binpackage = BinaryPackage(source_package=db_srcpackage, advisory=db_advisory, package=binary_package, release=release)
+                            db_binpackage.save()
+                    except:
+                        print "could not get binary packages for %s/%s" % (release, package)
+                    print "retrieved binary packages for %s" % advisory
+
     def _parse_svn_advisories(self):
         self._update_repository()
         dsas = {}
@@ -94,8 +94,10 @@ class DebianFeed(SecurityFeed):
                     if dsa != '' and len(packages) > 0: # at least one complete DSA parsed
                         dsas[dsa] = {
                             'packages': packages,
-                            'description': description
+                            'description': description,
+                            'issued': issued,
                         }
+                    issued = pytz.utc.localize(dateutil_parse(line.split('] ')[0].strip('[')))
                     dsa = line.split('] ')[-1].split()[0]
                     description = line.split(' - ')[-1].strip() if ' - ' in line else ''
                     packages = {}
@@ -110,30 +112,11 @@ class DebianFeed(SecurityFeed):
                     packages[source_package][release] = version
         return dsas
 
-    def _load_cached_advisories(self):
-        return self.cur.execute('SELECT * from advisories;').fetchall()
+class Command(BaseCommand):
+    help = 'Update all sources of advisories'
 
-    def _update_local_database(self):
-        svn_advisories = self._parse_svn_advisories()
-        new_advisories = set(svn_advisories) - set([row[1] for row in  self._load_cached_advisories()])
+    def handle(self, *args, **options):
+        feed = DebianFeed()
+        feed._update_local_database()
 
-        print "%i new advisories to download" % len(new_advisories)
-
-        for advisory in new_advisories:
-            self.cur.execute('INSERT INTO advisories VALUES(NULL, ?, ?);', (advisory, svn_advisories[advisory]['description']))
-            advisory_id = self.cur.lastrowid
-            for package, versions in svn_advisories[advisory]['packages'].iteritems():
-                for release, version in versions.iteritems():
-                    try:
-                        binary_packages = self._source_package_to_binary_packages(package, release)
-                        for binary_package in binary_packages:
-                            self.cur.execute('INSERT INTO binary_packages VALUES(NULL, ?, ?, ?);', (advisory_id, binary_package, release))
-                    except:
-                        print "could not get binary packages for %s/%s" % (release, package)
-                    self.cur.execute('INSERT INTO source_packages VALUES(NULL, ?, ?, ?, ?);', (advisory_id, package, release, version))
-                    self.db.commit()
-                    print "retrieved binary packages for %s" % advisory
-
-if __name__ == "__main__":
-    feed = DebianFeed()
-    import pprint; pprint.pprint(feed._update_local_database())
+        self.stdout.write('Done')

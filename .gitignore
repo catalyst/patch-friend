@@ -1,3 +1,13 @@
+# Local testing stuff
+hostinfo-urls
+dsa-cache
+
+# Operating cache
+patch/advisory_cache
+
+# Dev DB
+patch/db.sqlite3*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
