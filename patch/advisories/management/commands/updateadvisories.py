@@ -1,8 +1,8 @@
+from datetime import datetime
 import bz2
+import json
 import os
 import re
-import json
-from datetime import datetime
 
 import deb822
 import pysvn
@@ -11,9 +11,10 @@ import requests
 
 from dateutil.parser import parse as dateutil_parse
 
-from django.core.management.base import BaseCommand, CommandError
 from advisories.models import *
 from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
 
 class DebianFeed(object):
 
@@ -89,6 +90,7 @@ class DebianFeed(object):
                     packages[source_package][release] = version
         return dsas
 
+    @transaction.atomic
     def update_local_database(self):
         self._update_repository()       
         svn_advisories = self._parse_svn_advisories()
@@ -97,7 +99,7 @@ class DebianFeed(object):
         print "  %i new DSAs to download" % len(new_advisories)
 
         for advisory in new_advisories:
-            print "    downloading DSA %s..." % advisory,
+            print "    downloading %s..." % advisory,
             db_advisory = Advisory(upstream_id=advisory, source="debian", issued=svn_advisories[advisory]['issued'], short_description=svn_advisories[advisory]['description'])
             db_advisory.save()
             for package, versions in svn_advisories[advisory]['packages'].iteritems():
@@ -107,12 +109,10 @@ class DebianFeed(object):
                     try:
                         binary_packages = self._source_package_to_binary_packages(package, release)
                         for binary_package in binary_packages:
-                            db_binpackage = BinaryPackage(source_package=db_srcpackage, advisory=db_advisory, package=binary_package, release=release)
+                            db_binpackage = BinaryPackage(source_package=db_srcpackage, advisory=db_advisory, package=binary_package, release=release, safe_version=version)
                             db_binpackage.save()
                     except:
-                        print "Error (could not get binary packages for %s/%s)" % (release, package)
-                    else:
-                        print "OK"
+                        print "(could not get binary packages for %s/%s)" % (release, package),
 
 class UbuntuFeed(object):
 
@@ -157,6 +157,7 @@ class UbuntuFeed(object):
         with open("%s/database.json" % self.cache_location) as usn_list_file:
             return json.loads(usn_list_file.read())
 
+    @transaction.atomic
     def update_local_database(self):
         self._update_json_advisories()
         json_advisories = self._parse_json_advisories()
@@ -173,12 +174,13 @@ class UbuntuFeed(object):
                 for release, release_data in json_advisories[advisory]['releases'].items():
                     for package, package_data in release_data['sources'].items():
                         db_srcpackage = SourcePackage(advisory=db_advisory, package=package, release=release, safe_version=package_data['version'])
-                        db_srcpackage.save()           
+                        db_srcpackage.save()       
                     for package, package_data in release_data['binaries'].items():
-                        db_binpackage = BinaryPackage(source_package=db_srcpackage, advisory=db_advisory, package=package, release=release, safe_version=package_data['version'])
+                        db_binpackage = BinaryPackage(advisory=db_advisory, package=package, release=release, safe_version=package_data['version'])
                         db_binpackage.save()
             except:
                 print "Error"
+                raise
             else:
                 print "OK"
 

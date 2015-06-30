@@ -3,8 +3,8 @@ from django.utils import timezone
 
 class Advisory(models.Model):
     SOURCES = (
-        ('ubuntu', 'ubuntu'),
-        ('debian', 'debian'),
+        ('ubuntu', 'Ubuntu'),
+        ('debian', 'Debian'),
     )
 
     upstream_id = models.CharField(max_length=200, verbose_name="Upstream ID")
@@ -48,10 +48,14 @@ class BinaryPackage(models.Model):
     )
 
     advisory = models.ForeignKey(Advisory)
-    source_package = models.ForeignKey(SourcePackage)
+    source_package = models.ForeignKey(SourcePackage, null=True)
     package = models.CharField(max_length=200)
     release = models.CharField(choices=RELEASES,max_length=32)
     safe_version = models.CharField(max_length=200, null=True)
 
     def __unicode__(self):
-        return "%s (%s)" % (self.package, self.release)
+        if self.safe_version:
+            return "%s < %s (%s)" % (self.package, self.safe_version, self.release)
+        else:
+            return "%s (%s)" % (self.package, self.release)
+
