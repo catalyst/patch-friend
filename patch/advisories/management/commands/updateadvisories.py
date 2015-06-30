@@ -169,7 +169,15 @@ class UbuntuFeed(object):
             print "    processing USN %s..." % advisory,
 
             try:
-                db_advisory = Advisory(upstream_id=advisory, source="ubuntu", issued=datetime.utcfromtimestamp(json_advisories[advisory]['timestamp']).replace(tzinfo=pytz.utc), short_description=json_advisories[advisory].get('isummary', ''))
+                advisory_data = json_advisories[advisory]
+                db_advisory = Advisory(
+                    upstream_id=advisory,
+                    source="ubuntu",
+                    issued=datetime.utcfromtimestamp(advisory_data['timestamp']).replace(tzinfo=pytz.utc),
+                    description=advisory_data.get('description', None),
+                    action=advisory_data.get('action', None),
+                    short_description=advisory_data.get('isummary', None)
+                )
                 db_advisory.save()
                 for release, release_data in json_advisories[advisory]['releases'].items():
                     for package, package_data in release_data['sources'].items():
@@ -191,9 +199,6 @@ class Command(BaseCommand):
         self.stdout.write(self.style.MIGRATE_HEADING("Updating DSAs..."))
         feed = DebianFeed()
         feed.update_local_database()
-
-        print ""
-
         self.stdout.write(self.style.MIGRATE_HEADING("Updating USNs..."))
         feed = UbuntuFeed()
         feed.update_local_database()

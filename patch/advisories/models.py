@@ -1,3 +1,4 @@
+from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
 
@@ -7,10 +8,22 @@ class Advisory(models.Model):
         ('debian', 'Debian'),
     )
 
+    SEVERITIES = (
+        (0, 'Undecided'),
+        (1, 'Low'),
+        (2, 'Standard'),
+        (3, 'High'),
+        (4, 'Critical'),
+    )
+
     upstream_id = models.CharField(max_length=200, verbose_name="Upstream ID")
-    short_description = models.CharField(max_length=200)
+    short_description = models.CharField(max_length=200, null=True)
+    description = models.TextField(null=True)
+    action = models.TextField(null=True)
     issued = models.DateTimeField(default=timezone.now)
-    source = models.CharField(choices=SOURCES, max_length=32)    
+    source = models.CharField(choices=SOURCES, max_length=32)
+    severity = models.CharField(choices=SEVERITIES, max_length=32, default=0)
+    reviewed_by = models.ForeignKey(User, null=True)
 
     class Meta:
         verbose_name_plural = "advisories"
