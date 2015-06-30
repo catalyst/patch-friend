@@ -15,5 +15,6 @@ class AdvisoryAdmin(admin.ModelAdmin):
     list_filter = ['issued', 'source']   
     search_fields = ['upstream_id']
     list_display = ['source', 'upstream_id', 'short_description', 'source_package_names', 'issued']
+    ordering = ['-issued']
 
 admin.site.register(Advisory, AdvisoryAdmin)
