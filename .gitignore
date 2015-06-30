@@ -1,6 +1,7 @@
 # Local testing stuff
 hostinfo-urls
 dsa-cache
+example.json
 
 # Operating cache
 patch/advisory_cache

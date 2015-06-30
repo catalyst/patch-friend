@@ -1,3 +1,6 @@
+from datetime import datetime
+import bz2
+import json
 import os
 import re
 
@@ -8,14 +11,12 @@ import requests
 
 from dateutil.parser import parse as dateutil_parse
 
-from django.core.management.base import BaseCommand, CommandError
 from advisories.models import *
 from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
 
-class SecurityFeed(object):
-    pass
-
-class DebianFeed(SecurityFeed):
+class DebianFeed(object):
 
     def __init__(self, secure_testing_url=None, cache_location=None, releases=None):
         self.client = pysvn.Client()
@@ -61,30 +62,7 @@ class DebianFeed(SecurityFeed):
         binary_packages = deb822.Dsc(dsc_page.content)['Binary'].split()
         return [package.strip(', ') for package in binary_packages]
 
-    def _update_local_database(self):
-        svn_advisories = self._parse_svn_advisories()
-        new_advisories = set(svn_advisories) - set([advisory.upstream_id for advisory in Advisory.objects.all()])
-
-        print "%i new advisories to download" % len(new_advisories)
-
-        for advisory in new_advisories:
-            db_advisory = Advisory(upstream_id=advisory, source="debian", issued=svn_advisories[advisory]['issued'], short_description=svn_advisories[advisory]['description'])
-            db_advisory.save()
-            for package, versions in svn_advisories[advisory]['packages'].iteritems():
-                for release, version in versions.iteritems():
-                    db_srcpackage = SourcePackage(advisory=db_advisory, package=package, release=release, safe_version=version)
-                    db_srcpackage.save()                    
-                    try:
-                        binary_packages = self._source_package_to_binary_packages(package, release)
-                        for binary_package in binary_packages:
-                            db_binpackage = BinaryPackage(source_package=db_srcpackage, advisory=db_advisory, package=binary_package, release=release)
-                            db_binpackage.save()
-                    except:
-                        print "could not get binary packages for %s/%s" % (release, package)
-                    print "retrieved binary packages for %s" % advisory
-
     def _parse_svn_advisories(self):
-        self._update_repository()
         dsas = {}
         with open('%s/svn/data/DSA/list' % self.cache_location) as dsa_list_file:
             dsa = ''
@@ -112,11 +90,115 @@ class DebianFeed(SecurityFeed):
                     packages[source_package][release] = version
         return dsas
 
+    @transaction.atomic
+    def update_local_database(self):
+        self._update_repository()       
+        svn_advisories = self._parse_svn_advisories()
+        new_advisories = set(svn_advisories) - set([advisory.upstream_id for advisory in Advisory.objects.filter(source='debian')])
+
+        print "  %i new DSAs to download" % len(new_advisories)
+
+        for advisory in new_advisories:
+            print "    downloading %s..." % advisory,
+            db_advisory = Advisory(upstream_id=advisory, source="debian", issued=svn_advisories[advisory]['issued'], short_description=svn_advisories[advisory]['description'])
+            db_advisory.save()
+            for package, versions in svn_advisories[advisory]['packages'].iteritems():
+                for release, version in versions.iteritems():
+                    db_srcpackage = SourcePackage(advisory=db_advisory, package=package, release=release, safe_version=version)
+                    db_srcpackage.save()                    
+                    try:
+                        binary_packages = self._source_package_to_binary_packages(package, release)
+                        for binary_package in binary_packages:
+                            db_binpackage = BinaryPackage(source_package=db_srcpackage, advisory=db_advisory, package=binary_package, release=release, safe_version=version)
+                            db_binpackage.save()
+                    except:
+                        print "(could not get binary packages for %s/%s)" % (release, package),
+
+class UbuntuFeed(object):
+
+    def __init__(self, usn_url=None, cache_location=None, releases=None):
+        self.usn_url = usn_url or 'https://usn.ubuntu.com/usn-db/database.json.bz2'
+        self.cache_location = cache_location or '%s/advisory_cache/usn' % settings.BASE_DIR
+        self.releases = releases or (
+            'precise',
+            'trusty',
+        )
+
+    def _update_json_advisories(self):
+        """
+        Download and decompress the latest USN data from Ubuntu.
+        """
+
+        response = requests.get(self.usn_url, stream=True)
+        bytes_downloaded = 0
+        with open("%s/incoming-database.json.bz2" % self.cache_location, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=1024): 
+                if chunk:
+                    f.write(chunk)
+                    f.flush()
+                    bytes_downloaded += len(chunk)
+
+        if bytes_downloaded < 1500:
+            raise Exception("could not download USN feed")
+        else:
+            try:
+                with open("%s/incoming-database.json" % self.cache_location, 'wb') as decompressed, bz2.BZ2File("%s/incoming-database.json.bz2" % self.cache_location, 'rb') as compressed:
+                    for data in iter(lambda : compressed.read(100 * 1024), b''):
+                        decompressed.write(data)            
+                os.rename("%s/incoming-database.json" % self.cache_location, "%s/database.json" % self.cache_location)
+            except:
+                raise Exception("could not decompress USN feed")
+
+    def _parse_json_advisories(self):
+        """
+        Produce a dictionary representing USN data from the cache file.
+        """
+
+        with open("%s/database.json" % self.cache_location) as usn_list_file:
+            return json.loads(usn_list_file.read())
+
+    @transaction.atomic
+    def update_local_database(self):
+        self._update_json_advisories()
+        json_advisories = self._parse_json_advisories()
+        new_advisories = set(json_advisories) - set([advisory.upstream_id for advisory in Advisory.objects.filter(source='ubuntu')])
+
+        print "  %i new USNs to process" % len(new_advisories)
+
+        for advisory in new_advisories:
+            print "    processing USN %s..." % advisory,
+
+            try:
+                advisory_data = json_advisories[advisory]
+                db_advisory = Advisory(
+                    upstream_id=advisory,
+                    source="ubuntu",
+                    issued=datetime.utcfromtimestamp(advisory_data['timestamp']).replace(tzinfo=pytz.utc),
+                    description=advisory_data.get('description', None),
+                    action=advisory_data.get('action', None),
+                    short_description=advisory_data.get('isummary', None)
+                )
+                db_advisory.save()
+                for release, release_data in json_advisories[advisory]['releases'].items():
+                    for package, package_data in release_data['sources'].items():
+                        db_srcpackage = SourcePackage(advisory=db_advisory, package=package, release=release, safe_version=package_data['version'])
+                        db_srcpackage.save()       
+                    for package, package_data in release_data['binaries'].items():
+                        db_binpackage = BinaryPackage(advisory=db_advisory, package=package, release=release, safe_version=package_data['version'])
+                        db_binpackage.save()
+            except:
+                print "Error"
+                raise
+            else:
+                print "OK"
+
 class Command(BaseCommand):
     help = 'Update all sources of advisories'
 
     def handle(self, *args, **options):
+        self.stdout.write(self.style.MIGRATE_HEADING("Updating DSAs..."))
         feed = DebianFeed()
-        feed._update_local_database()
-
-        self.stdout.write('Done')
+        feed.update_local_database()
+        self.stdout.write(self.style.MIGRATE_HEADING("Updating USNs..."))
+        feed = UbuntuFeed()
+        feed.update_local_database()

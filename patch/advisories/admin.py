@@ -12,8 +12,8 @@ class SourcePackageInline(admin.StackedInline):
 
 class AdvisoryAdmin(admin.ModelAdmin):
     inlines = [SourcePackageInline, BinaryPackageInline]
-    list_filter = ['issued']   
-    search_fields = ['debian_id']
-    list_display = ['upstream_id', 'short_description', 'source_package_names', 'issued']
+    list_filter = ['issued', 'source']   
+    search_fields = ['upstream_id']
+    list_display = ['source', 'upstream_id', 'short_description', 'source_package_names', 'issued']
 
 admin.site.register(Advisory, AdvisoryAdmin)
