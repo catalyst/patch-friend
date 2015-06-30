@@ -18,12 +18,16 @@ class HostActivityListFilter(admin.SimpleListFilter):
         if self.value() == 'inactive':
             return queryset.filter(current_status__status='absent')
 
+class PackageInline(admin.StackedInline):
+    model = Package
+    extra = 0
+
 class HostStatusInline(admin.StackedInline):
     model = HostStatus
     extra = 0
 
 class HostAdmin(admin.ModelAdmin):
-    inlines = [HostStatusInline]
+    inlines = [PackageInline, HostStatusInline]
     search_fields = ['name']
     list_display = ['name', 'hostinfo_fingerprint']
     list_filter = [HostActivityListFilter]
@@ -34,3 +38,4 @@ class HostDiscoveryRunAdmin(admin.ModelAdmin):
 admin.site.register(Customer)
 admin.site.register(Host, HostAdmin)
 admin.site.register(HostDiscoveryRun, HostDiscoveryRunAdmin)
+admin.site.register(Package)

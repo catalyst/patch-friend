@@ -28,7 +28,7 @@ class HostDiscoveryRun(models.Model):
     created = models.DateTimeField(auto_now_add=True)
 
     def __unicode__(self):
-        return "%s run %s" % (self.source, self.created)
+        return "%s host run %s" % (self.source, self.created)
 
 class HostStatus(models.Model):
     STATUSES = (
@@ -46,3 +46,42 @@ class HostStatus(models.Model):
 
     def __unicode__(self):
         return "%s was %s" % (self.host.name, self.status)
+
+class Package(models.Model):
+    name = models.CharField(max_length=200)
+    host = models.ForeignKey(Host)
+    current_status = models.ForeignKey('PackageStatus', related_name='+', null=True)
+
+    def __unicode__(self):
+        return self.name
+
+class PackageDiscoveryRun(models.Model):
+    SOURCES = (
+        ('hostinfo', 'hostinfo'),
+    )
+
+    host = models.ForeignKey(Host)
+    source = models.CharField(choices=SOURCES, max_length=32)
+    created = models.DateTimeField(auto_now_add=True)
+
+    def __unicode__(self):
+        return "%s package run %s" % (self.source, self.created)
+
+class PackageStatus(models.Model):
+    STATUSES = (
+        ('present', 'present'),
+        ('absent', 'absent'),
+    )
+
+    package = models.ForeignKey(Package)
+    discovery_run = models.ForeignKey(PackageDiscoveryRun)
+    status = models.CharField(choices=STATUSES, max_length=32)
+    created = models.DateTimeField(auto_now_add=True)
+    version = models.CharField(max_length=200)
+
+    class Meta:
+        verbose_name_plural = "package statuses"
+
+    def __unicode__(self):
+        return "%s %s was %s" % (self.package.name, self.version, self.status)
+
