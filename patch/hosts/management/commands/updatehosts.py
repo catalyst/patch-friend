@@ -41,7 +41,7 @@ class Command(BaseCommand):
         print "  %i hosts found (%i new)" % (len(all_hostinfo_fingerprints), len(new_hosts))
 
         for fingerprint, host_data in all_hostinfo_fingerprints.iteritems():
-            db_host, db_host_created = Host.objects.get_or_create(hostinfo_fingerprint=fingerprint, defaults={'customer': Customer(1), 'name': host_data['hostname']})
+            db_host, db_host_created = Host.objects.get_or_create(hostinfo_fingerprint=fingerprint, defaults={'hostinfo_id': host_data['hostid'], 'customer': Customer(1), 'name': host_data['hostname']})
             db_hoststatus = HostStatus(host=db_host, discovery_run=db_discoveryrun, status='present')
             db_hoststatus.save()
             db_host.current_status = db_hoststatus

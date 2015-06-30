@@ -9,7 +9,8 @@ class Customer(models.Model):
 class Host(models.Model):
     name = models.CharField(max_length=200)
     customer = models.ForeignKey(Customer)
-    hostinfo_fingerprint = models.CharField(max_length=200, unique=True)
+    hostinfo_fingerprint = models.CharField(max_length=200, unique=True, null=True)
+    hostinfo_id = models.IntegerField(null=True)
     current_status = models.ForeignKey('HostStatus', related_name='+', null=True)
 
     def __unicode__(self):
