@@ -51,6 +51,7 @@ class BinaryPackage(models.Model):
     source_package = models.ForeignKey(SourcePackage)
     package = models.CharField(max_length=200)
     release = models.CharField(choices=RELEASES,max_length=32)
+    safe_version = models.CharField(max_length=200, null=True)
 
     def __unicode__(self):
         return "%s (%s)" % (self.package, self.release)
