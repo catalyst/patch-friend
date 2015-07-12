@@ -102,3 +102,18 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.8/howto/static-files/
 
 STATIC_URL = '/static/'
+
+
+# Current stable releases
+RELEASES = (
+    ('squeeze', 'Debian Squeeze'),
+    ('wheezy', 'Debian Wheezy'),
+    ('jessie', 'Debian Jessie'),
+    ('precise', 'Ubuntu Precise'),        
+    ('trusty', 'Ubuntu Trusty',)
+)  
+
+# Data source plugins
+DATA_SOURCES = (
+    ('hostinfo', 'hostinfo'),
+)

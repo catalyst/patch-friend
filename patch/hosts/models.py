@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 class Customer(models.Model):
@@ -6,12 +7,23 @@ class Customer(models.Model):
     def __unicode__(self):
         return self.name
 
+class Tag(models.Model):
+    name = models.CharField(max_length=200)
+    customer = models.ForeignKey(Customer)
+
+    class Meta:
+        unique_together = (("name", "customer"),)
+
+    def __unicode__(self):
+        return self.name
+
 class Host(models.Model):
     name = models.CharField(max_length=200)
     customer = models.ForeignKey(Customer)
     hostinfo_fingerprint = models.CharField(max_length=200, unique=True, null=True)
-    hostinfo_id = models.IntegerField(null=True)
+    hostinfo_id = models.IntegerField(null=True, verbose_name="Hostinfo ID")
     current_status = models.ForeignKey('HostStatus', related_name='+', null=True)
+    tags = models.ManyToManyField(Tag)
 
     def __unicode__(self):
         return self.name
@@ -20,11 +32,7 @@ class Host(models.Model):
         return self.current_status.status == 'present'
 
 class HostDiscoveryRun(models.Model):
-    SOURCES = (
-        ('hostinfo', 'hostinfo'),
-    )
-
-    source = models.CharField(choices=SOURCES, max_length=32)
+    source = models.CharField(choices=settings.DATA_SOURCES, max_length=32)
     created = models.DateTimeField(auto_now_add=True)
 
     def __unicode__(self):
@@ -32,45 +40,59 @@ class HostDiscoveryRun(models.Model):
 
 class HostStatus(models.Model):
     STATUSES = (
-        ('present', 'present'),
-        ('absent', 'absent'),
+        ('present', 'Present'),
+        ('absent', 'Absent'),
     )
 
     host = models.ForeignKey(Host)
     discovery_run = models.ForeignKey(HostDiscoveryRun)
     status = models.CharField(choices=STATUSES, max_length=32)
+    release = models.CharField(choices=settings.RELEASES,max_length=32)
     created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = (("host", "discovery_run"),)
 
     class Meta:
         verbose_name_plural = "host statuses"
 
     def __unicode__(self):
-        return "%s was %s" % (self.host.name, self.status)
+        return self.status
+
+class HostImportedAttribute(models.Model):
+    host = models.ForeignKey(Host)
+    key = models.CharField(max_length=200)
+    value = models.CharField(max_length=200)
+
+    class Meta:
+        unique_together = (("host", "key"),)
+
+    def __unicode__(self):
+        return self.key
 
 class Package(models.Model):
     name = models.CharField(max_length=200)
     host = models.ForeignKey(Host)
     current_status = models.ForeignKey('PackageStatus', related_name='+', null=True)
 
+    class Meta:
+        unique_together = (("name", "host"),)
+
     def __unicode__(self):
-        return self.name
+        return "%s" % self.name
 
 class PackageDiscoveryRun(models.Model):
-    SOURCES = (
-        ('hostinfo', 'hostinfo'),
-    )
-
     host = models.ForeignKey(Host)
-    source = models.CharField(choices=SOURCES, max_length=32)
+    source = models.CharField(choices=settings.DATA_SOURCES, max_length=32)
     created = models.DateTimeField(auto_now_add=True)
 
     def __unicode__(self):
-        return "%s package run %s" % (self.source, self.created)
+        return "%s %s package run %s" % (self.host.name, self.source, self.created)
 
 class PackageStatus(models.Model):
     STATUSES = (
-        ('present', 'present'),
-        ('absent', 'absent'),
+        ('present', 'Present'),
+        ('absent', 'Absent'),
     )
 
     package = models.ForeignKey(Package)
@@ -81,7 +103,10 @@ class PackageStatus(models.Model):
 
     class Meta:
         verbose_name_plural = "package statuses"
+        unique_together = (("package", "discovery_run"),)
 
     def __unicode__(self):
-        return "%s %s was %s" % (self.package.name, self.version, self.status)
-
+        if self.status == 'present':
+            return self.version
+        else:
+            return "not installed" 

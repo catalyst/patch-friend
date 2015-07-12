@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
@@ -35,17 +36,9 @@ class Advisory(models.Model):
         return ", ".join([package.__unicode__() for package in self.sourcepackage_set.all()])
 
 class SourcePackage(models.Model):
-    RELEASES = (
-        ('squeeze', 'squeeze'),
-        ('wheezy', 'wheezy'),
-        ('jessie', 'jessie'),
-        ('precise', 'precise'),        
-        ('trusty', 'trusty',)
-    )
-
     advisory = models.ForeignKey(Advisory)
     package = models.CharField(max_length=200)
-    release = models.CharField(choices=RELEASES,max_length=32)
+    release = models.CharField(choices=settings.RELEASES,max_length=32)
     safe_version = models.CharField(max_length=200)
 
     def __unicode__(self):
