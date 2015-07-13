@@ -5,22 +5,6 @@ from django.db.models import Count
 
 from .models import *
 
-# Customer admin
-
-class HostInline(admin.StackedInline):
-    form = HostForm
-    model = Host
-    extra = 0
-
-class TagInline(admin.StackedInline):
-    model = Tag
-    extra = 0
-
-class CustomerAdmin(admin.ModelAdmin):
-    list_display = ['name']   
-    inlines = [TagInline, HostInline]
-    search_fields = ['name']
-
 # Host admin
 
 class HostForm(forms.ModelForm):
@@ -107,7 +91,7 @@ class PackageStatusForm(forms.ModelForm):
     """
     Override the standard package status form to ensure that the discovery run can only be selected from the packages's discovery runs
     """    
-    
+
     def __init__(self, *args, **kwargs):
         super(PackageStatusForm, self).__init__(*args, **kwargs)
         try:      
@@ -135,6 +119,22 @@ class PackageDiscoveryRunAdmin(admin.ModelAdmin):
 
 class TagAdmin(admin.ModelAdmin):
     list_display = ["name", "customer"]
+
+# Customer admin
+
+class HostInline(admin.StackedInline):
+    form = HostForm
+    model = Host
+    extra = 0
+
+class TagInline(admin.StackedInline):
+    model = Tag
+    extra = 0
+
+class CustomerAdmin(admin.ModelAdmin):
+    list_display = ['name']   
+    inlines = [TagInline, HostInline]
+    search_fields = ['name']
 
 admin.site.register(Customer, CustomerAdmin)
 admin.site.register(Host, HostAdmin)

@@ -20,6 +20,10 @@ import shlex
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #sys.path.insert(0, os.path.abspath('.'))
+sys.path.insert(0, os.path.abspath('../patch'))
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "patch.settings")
+import django
+django.setup()
 
 # -- General configuration ------------------------------------------------
 
@@ -49,8 +53,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Patch Friend'
-copyright = u'2015, Michael Fincham <michael.fincham@catalyst.net.nz>'
-author = u'Michael Fincham <michael.fincham@catalyst.net.nz>'
+copyright = u'2015 Catalyst.net Ltd'
+author = u'Michael Fincham michael.fincham@catalyst.net.nz'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -115,7 +119,9 @@ html_theme = 'alabaster'
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-#html_theme_options = {}
+html_theme_options = {
+    'show_related': True,
+}
 
 # Add any paths that contain custom themes here, relative to this directory.
 #html_theme_path = []
