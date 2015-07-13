@@ -7,6 +7,8 @@ Contents:
    :maxdepth: 2
 
    overview
+   timeline
+   plans
    modules/models
 
 Indices and tables
