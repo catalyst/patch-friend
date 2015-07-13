@@ -4,19 +4,22 @@ import json
 import os
 import re
 
+from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
+
+from dateutil.parser import parse as dateutil_parse
 import deb822
 import pysvn
 import pytz
 import requests
 
-from dateutil.parser import parse as dateutil_parse
-
 from advisories.models import *
-from django.conf import settings
-from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
 
 class DebianFeed(object):
+    """
+    Syncs additions to the official DSA list in to the local database, as well as retrieving and parsing metadata about each one.
+    """
 
     def __init__(self, secure_testing_url=None, cache_location=None, releases=None):
         self.client = pysvn.Client()
@@ -29,6 +32,10 @@ class DebianFeed(object):
         )
 
     def _update_repository(self):
+        """
+        Update the local checkout of the subversion repository where the advisory lists are kept.
+        """
+
         repo_path = "%s/svn" % self.cache_location
         number = -1
         try:
@@ -63,6 +70,10 @@ class DebianFeed(object):
         return [package.strip(', ') for package in binary_packages]
 
     def _parse_svn_advisories(self):
+        """
+        Parse the DSA list from the local checkout of the subversion repository and return a dictionary representing the data.
+        """
+
         dsas = {}
         with open('%s/svn/data/DSA/list' % self.cache_location) as dsa_list_file:
             dsa = ''
@@ -92,6 +103,10 @@ class DebianFeed(object):
 
     @transaction.atomic
     def update_local_database(self):
+        """
+        Update the local repository, parse it and add any new advisories to the local database.
+        """
+
         self._update_repository()       
         svn_advisories = self._parse_svn_advisories()
         new_advisories = set(svn_advisories) - set([advisory.upstream_id for advisory in Advisory.objects.filter(source='debian')])
@@ -115,6 +130,9 @@ class DebianFeed(object):
                         print "(could not get binary packages for %s/%s)" % (release, package),
 
 class UbuntuFeed(object):
+    """
+    Syncs the latest additions to the USN JSON file in to the local database.
+    """
 
     def __init__(self, usn_url=None, cache_location=None, releases=None):
         self.usn_url = usn_url or 'https://usn.ubuntu.com/usn-db/database.json.bz2'
@@ -159,6 +177,10 @@ class UbuntuFeed(object):
 
     @transaction.atomic
     def update_local_database(self):
+        """
+        Retrieve the latest JSON data, parse it and add any new advisories to the local database.
+        """
+
         self._update_json_advisories()
         json_advisories = self._parse_json_advisories()
         new_advisories = set(json_advisories) - set([advisory.upstream_id for advisory in Advisory.objects.filter(source='ubuntu')])

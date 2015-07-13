@@ -1,16 +1,22 @@
-import json
-import cProfile
+"""
+Commands to perform host discovery and package discovery runs. Presently only supporting hostinfo.
 
+This file is a work-in-progress. Ideally this would be re-factored out in to a "hostinfo" plugin, to make room for mcollective and
+native plugins later.
+"""
+
+import cProfile
+import json
+
+from django.core.management.base import BaseCommand, CommandError
+from django.core.paginator import Paginator
+from django.db import transaction
+from django.utils import timezone
+
+from joblib import Parallel, delayed
 import requests
 
 from hosts.models import *
-
-from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
-from django.utils import timezone
-from django.core.paginator import Paginator
-
-from joblib import Parallel, delayed
 
 class HostinfoClient(object):
     

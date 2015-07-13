@@ -104,6 +104,20 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 
+ADVISORY_SOURCES = (
+    ('ubuntu', 'Ubuntu'),
+    ('debian', 'Debian'),
+)
+
+# For advisories that have been triaged by a human
+ADVISORY_SEVERITIES = (
+    (0, 'Undecided'),
+    (1, 'Low'),
+    (2, 'Standard'),
+    (3, 'High'),
+    (4, 'Critical'),
+)
+
 # Current stable releases
 RELEASES = (
     ('squeeze', 'Debian Squeeze'),
