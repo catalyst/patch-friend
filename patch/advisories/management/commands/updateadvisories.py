@@ -43,10 +43,14 @@ class DebianFeed(object):
         except:
             pass
 
+        # update to the latest remote revision of the SVN repo
         number = self.client.update(repo_path)[0].number
 
-        if number == -1 or not os.path.isfile('%s/svn/data/DSA/list' % self.cache_location): # the repo doesn't exist yet in the cache
+        # if the repo didn't yet exist locally, update() will have done nothing
+        if number == -1 or not os.path.isfile('%s/svn/data/DSA/list' % self.cache_location): 
             self.client.checkout(self.secure_testing_url, repo_path)
+        else:
+            return number
 
     def _source_package_to_binary_packages(self, source_package, release):
         """
@@ -79,6 +83,8 @@ class DebianFeed(object):
             dsa = ''
             packages = {}
             for line in dsa_list_file:
+
+                # minimal state machine follows
                 if line.startswith('['): # start of the DSA
                     if dsa != '' and len(packages) > 0: # at least one complete DSA parsed
                         dsas[dsa] = {
@@ -87,12 +93,12 @@ class DebianFeed(object):
                             'issued': issued,
                         }
                     issued = pytz.utc.localize(dateutil_parse(line.split('] ')[0].strip('[')))
-                    dsa = line.split('] ')[-1].split()[0]
-                    description = line.split(' - ')[-1].strip() if ' - ' in line else ''
+                    dsa = line.split('] ')[-1].split()[0] # upstream ID of DSA
+                    description = line.split(' - ')[-1].strip() if ' - ' in line else '' # description if it exists, otherwise empty
                     packages = {}
                 elif line.startswith('\t[') and '<not-affected>' not in line: # source package name for a particular release
                     release = line.split()[0].strip("\t[] ")
-                    if release not in self.releases: # no point in looking for ancient releases
+                    if release not in self.releases: # no point in looking for unsupported releases
                         continue
                     version = line.split()[3]
                     source_package = line.split()[2]
@@ -107,8 +113,10 @@ class DebianFeed(object):
         Update the local repository, parse it and add any new advisories to the local database.
         """
 
-        self._update_repository()       
+        self._update_repository() # ensure the local repo is up to date    
         svn_advisories = self._parse_svn_advisories()
+
+        # make a set of the advisory IDs which exist on disk but not in the database
         new_advisories = set(svn_advisories) - set([advisory.upstream_id for advisory in Advisory.objects.filter(source='debian')])
 
         print "  %i new DSAs to download" % len(new_advisories)
@@ -124,6 +132,7 @@ class DebianFeed(object):
                     try:
                         binary_packages = self._source_package_to_binary_packages(package, release)
                         for binary_package in binary_packages:
+                            # XXX it is assumed that the binary package's version matches the source package. this is only true /most/ of the time :(
                             db_binpackage = BinaryPackage(source_package=db_srcpackage, advisory=db_advisory, package=binary_package, release=release, safe_version=version)
                             db_binpackage.save()
                     except:
@@ -147,7 +156,7 @@ class UbuntuFeed(object):
         Download and decompress the latest USN data from Ubuntu.
         """
 
-        response = requests.get(self.usn_url, stream=True)
+        response = requests.get(self.usn_url, stream=True) # the USN list is a bzip'd JSON file of all the current advisories for all supported releases
         bytes_downloaded = 0
         with open("%s/incoming-database.json.bz2" % self.cache_location, 'wb') as f:
             for chunk in response.iter_content(chunk_size=1024): 
@@ -156,10 +165,11 @@ class UbuntuFeed(object):
                     f.flush()
                     bytes_downloaded += len(chunk)
 
-        if bytes_downloaded < 1500:
+        if bytes_downloaded < 1500: # sanity check
             raise Exception("could not download USN feed")
         else:
             try:
+                # un-bzip the file using the bz2 library and atomically replace the existing one if this succeeds
                 with open("%s/incoming-database.json" % self.cache_location, 'wb') as decompressed, bz2.BZ2File("%s/incoming-database.json.bz2" % self.cache_location, 'rb') as compressed:
                     for data in iter(lambda : compressed.read(100 * 1024), b''):
                         decompressed.write(data)            

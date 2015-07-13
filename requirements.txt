@@ -1,1 +1,7 @@
 django
+sphinx
+requests
+pysvn
+pytz
+python-debian
+
