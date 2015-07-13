@@ -121,6 +121,7 @@ html_theme = 'alabaster'
 # documentation.
 html_theme_options = {
     'show_related': True,
+    'logo_name': True,
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
