@@ -10,9 +10,9 @@ from django.db import transaction
 
 from dateutil.parser import parse as dateutil_parse
 import deb822
-import pysvn
 import pytz
 import requests
+import svn.remote
 
 from advisories.models import *
 
@@ -47,7 +47,7 @@ class DebianFeed(object):
         number = self.client.update(repo_path)[0].number
 
         # if the repo didn't yet exist locally, update() will have done nothing
-        if number == -1 or not os.path.isfile('%s/svn/data/DSA/list' % self.cache_location): 
+        if number == -1 or not os.path.isfile('%s/svn/data/DSA/list' % self.cache_location):
             self.client.checkout(self.secure_testing_url, repo_path)
         else:
             return number
@@ -113,7 +113,7 @@ class DebianFeed(object):
         Update the local repository, parse it and add any new advisories to the local database.
         """
 
-        self._update_repository() # ensure the local repo is up to date    
+        self._update_repository() # ensure the local repo is up to date
         svn_advisories = self._parse_svn_advisories()
 
         # make a set of the advisory IDs which exist on disk but not in the database
@@ -128,7 +128,7 @@ class DebianFeed(object):
             for package, versions in svn_advisories[advisory]['packages'].iteritems():
                 for release, version in versions.iteritems():
                     db_srcpackage = SourcePackage(advisory=db_advisory, package=package, release=release, safe_version=version)
-                    db_srcpackage.save()                    
+                    db_srcpackage.save()
                     try:
                         binary_packages = self._source_package_to_binary_packages(package, release)
                         for binary_package in binary_packages:
@@ -159,7 +159,7 @@ class UbuntuFeed(object):
         response = requests.get(self.usn_url, stream=True) # the USN list is a bzip'd JSON file of all the current advisories for all supported releases
         bytes_downloaded = 0
         with open("%s/incoming-database.json.bz2" % self.cache_location, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=1024): 
+            for chunk in response.iter_content(chunk_size=1024):
                 if chunk:
                     f.write(chunk)
                     f.flush()
@@ -172,7 +172,7 @@ class UbuntuFeed(object):
                 # un-bzip the file using the bz2 library and atomically replace the existing one if this succeeds
                 with open("%s/incoming-database.json" % self.cache_location, 'wb') as decompressed, bz2.BZ2File("%s/incoming-database.json.bz2" % self.cache_location, 'rb') as compressed:
                     for data in iter(lambda : compressed.read(100 * 1024), b''):
-                        decompressed.write(data)            
+                        decompressed.write(data)
                 os.rename("%s/incoming-database.json" % self.cache_location, "%s/database.json" % self.cache_location)
             except:
                 raise Exception("could not decompress USN feed")
@@ -214,7 +214,7 @@ class UbuntuFeed(object):
                 for release, release_data in json_advisories[advisory]['releases'].items():
                     for package, package_data in release_data['sources'].items():
                         db_srcpackage = SourcePackage(advisory=db_advisory, package=package, release=release, safe_version=package_data['version'])
-                        db_srcpackage.save()       
+                        db_srcpackage.save()
                     for package, package_data in release_data['binaries'].items():
                         db_binpackage = BinaryPackage(advisory=db_advisory, package=package, release=release, safe_version=package_data['version'])
                         db_binpackage.save()

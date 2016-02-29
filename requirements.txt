@@ -1,7 +1,6 @@
-django
+django==1.8
 sphinx
 requests
-pysvn
 pytz
 python-debian
-
+svn
