@@ -1,6 +1,7 @@
 django==1.8
+chardet==2.3.0
 sphinx
 requests
 pytz
-python-debian
+python-debian==0.1.23
 svn

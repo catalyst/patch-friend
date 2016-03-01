@@ -22,35 +22,32 @@ class DebianFeed(object):
     """
 
     def __init__(self, secure_testing_url=None, cache_location=None, releases=None):
-        self.client = pysvn.Client()
         self.secure_testing_url = secure_testing_url or 'svn://anonscm.debian.org/svn/secure-testing'
+        self.client = svn.remote.RemoteClient(self.secure_testing_url)
         self.cache_location = cache_location or '%s/advisory_cache/dsa' % settings.BASE_DIR
         self.releases = releases or (
-            'squeeze',
             'wheezy',
             'jessie',
         )
 
     def _update_repository(self):
         """
-        Update the local checkout of the subversion repository where the advisory lists are kept.
+        Update the local cache of the DSA list.
         """
 
-        repo_path = "%s/svn" % self.cache_location
-        number = -1
         try:
-            os.makedirs(repo_path)
+            os.makedirs(self.cache_location)
         except:
             pass
 
-        # update to the latest remote revision of the SVN repo
-        number = self.client.update(repo_path)[0].number
-
-        # if the repo didn't yet exist locally, update() will have done nothing
-        if number == -1 or not os.path.isfile('%s/svn/data/DSA/list' % self.cache_location):
-            self.client.checkout(self.secure_testing_url, repo_path)
-        else:
-            return number
+        try:
+            dsa_list = self.client.cat('data/DSA/list')
+            with open('%s/list' % self.cache_location, 'w') as dsa_list_file:
+                dsa_list_file.write(dsa_list)
+        except ValueError:
+            raise Exception("unable to retrieve data from SVN")
+        except:
+            raise Exception("unknown error updating DSA list cache file")
 
     def _source_package_to_binary_packages(self, source_package, release):
         """
@@ -75,11 +72,11 @@ class DebianFeed(object):
 
     def _parse_svn_advisories(self):
         """
-        Parse the DSA list from the local checkout of the subversion repository and return a dictionary representing the data.
+        Parse the local cache of the DSA list.
         """
 
         dsas = {}
-        with open('%s/svn/data/DSA/list' % self.cache_location) as dsa_list_file:
+        with open('%s/list' % self.cache_location) as dsa_list_file:
             dsa = ''
             packages = {}
             for line in dsa_list_file:
@@ -135,6 +132,7 @@ class DebianFeed(object):
                             # XXX it is assumed that the binary package's version matches the source package. this is only true /most/ of the time :(
                             db_binpackage = BinaryPackage(source_package=db_srcpackage, advisory=db_advisory, package=binary_package, release=release, safe_version=version)
                             db_binpackage.save()
+                            print "OK"
                     except:
                         print "(could not get binary packages for %s/%s)" % (release, package),
 
