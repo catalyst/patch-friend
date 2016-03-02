@@ -56,21 +56,6 @@ class DebianFeed(object):
         except:
             raise Exception("unknown error updating DSA list cache file")
 
-    def _source_package_to_binary_packages(self):
-        """
-        Uses madison then snapshot.d.o to try and find the binary packages built for a given source package and version.
-
-        Source URLs look like:
-
-        http://snapshot.debian.org/mr/package/glibc/2.19-18+deb8u2/allfiles
-        """
-
-        snapshot_url = "%s/mr/package/%s/%s/allfiles" % (self.snapshot_url, source_package, desired_version)
-        snapshot_response = requests.get(snapshot_url)
-        snapshot_data = json.loads(snapshot_response.text)
-
-        print snapshot_data
-
     def _parse_svn_advisories(self):
         """
         Parse the local cache of the DSA list.
@@ -94,11 +79,25 @@ class DebianFeed(object):
                     dsa = line.split('] ')[-1].split()[0] # upstream ID of DSA
                     description = line.split(' - ')[-1].strip() if ' - ' in line else '' # description if it exists, otherwise empty
                     packages = {}
-                elif line.startswith('\t[') and '<not-affected>' not in line: # source package name for a particular release
+                elif line.startswith('\t['): # source package name for a particular release
+
+                    if '<' in line: # package has some tags
+                        tags = [tag.strip('<>') for tag in line.split() if tag.startswith('<') and tag.endswith('>')]
+                    else:
+                        tags = []
+
+                    if 'not-affected' in tags: # ignore package
+                        continue
+
                     release = line.split()[0].strip("\t[] ")
                     if release not in self.releases: # no point in looking for unsupported releases
                         continue
-                    version = line.split()[3]
+
+                    if 'unfixed' in tags or 'end-of-life' in tags:
+                        version = '0' # unsafe at any speed
+                    else:
+                        version = line.split()[3]
+
                     source_package = line.split()[2]
                     if source_package not in packages:
                         packages[source_package] = {}
@@ -189,7 +188,7 @@ class DebianFeed(object):
 
                         print "OK"
                     except:
-                        print "(could not get binary packages for %s/%s)" % (release, package),
+                        print "could not get binary packages for %s/%s, assuming there are none" % (release, package)
 
 class UbuntuFeed(object):
     """
@@ -248,8 +247,8 @@ class UbuntuFeed(object):
         """
         Retrieve the latest JSON data, parse it and add any new advisories to the local database.
         """
-
-        self._update_json_advisories()
+        print "  Downloading JSON data..."
+        # self._update_json_advisories()
         json_advisories = self._parse_json_advisories()
         new_advisories = set(json_advisories) - set([advisory.upstream_id for advisory in Advisory.objects.filter(source='ubuntu')])
 
@@ -269,15 +268,20 @@ class UbuntuFeed(object):
                     short_description=advisory_data.get('isummary', None)
                 )
                 db_advisory.save()
-                for release, release_data in json_advisories[advisory]['releases'].items():
+                for release, release_data in {release:release_data for release, release_data in json_advisories[advisory]['releases'].iteritems() if release in self.releases}.iteritems():
                     for package, package_data in release_data['sources'].items():
                         db_srcpackage = SourcePackage(advisory=db_advisory, package=package, release=release, safe_version=package_data['version'])
                         db_srcpackage.save()
                     for package, package_data in release_data['binaries'].items():
-                        print package_data
-                        import sys; sys.exit(0)
-                        db_binpackage = BinaryPackage(advisory=db_advisory, package=package, release=release, safe_version=package_data['version'])
-                        db_binpackage.save()
+                        for architecture in [architecture for architecture in release_data['archs'].keys() if architecture in self.architectures]:
+                            for url in release_data['archs'][architecture]['urls'].keys():
+                                package_filename = url.split('/')[-1]
+                                if not package_filename.endswith('.deb'):
+                                    continue
+                                binary_package_name = package_filename.split('_')[0]
+                                binary_package_version = package_filename.split('_')[1]
+                                db_binpackage = BinaryPackage(advisory=db_advisory, package=binary_package_name, release=release, safe_version=binary_package_version, architecture=architecture)
+                                db_binpackage.save()
             except:
                 print "Error"
                 raise
@@ -291,6 +295,6 @@ class Command(BaseCommand):
         self.stdout.write(self.style.MIGRATE_HEADING("Updating DSAs..."))
         feed = DebianFeed()
         feed.update_local_database()
-        #self.stdout.write(self.style.MIGRATE_HEADING("Updating USNs..."))
-        #feed = UbuntuFeed()
-        #feed.update_local_database()
+        self.stdout.write(self.style.MIGRATE_HEADING("Updating USNs..."))
+        feed = UbuntuFeed()
+        feed.update_local_database()

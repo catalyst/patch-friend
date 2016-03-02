@@ -30,7 +30,7 @@ class SourcePackage(models.Model):
     """
     Source package to which an advisory refers. These are not of a direct concern to hosts, as source packages are not actually "installed".
 
-    For Debian advisories, the source package is used to determine what binary packages (and their versions) are considered safe. This process is complicated so may not be 100 percent accurate.
+    For Debian advisories, the source package is used to determine what binary packages (and their versions) are considered safe.
     """
 
     advisory = models.ForeignKey(Advisory, help_text="Advisory to which this package belongs")
@@ -39,7 +39,12 @@ class SourcePackage(models.Model):
     safe_version = models.CharField(max_length=200, help_text="Package version that is to be considered 'safe' at the issue of this advisory")
 
     def __unicode__(self):
-        return "%s %s (%s)" % (self.package, self.safe_version, self.release)
+        safe_version = self.safe_version
+
+        if self.safe_version == '0':
+            safe_version = ''
+
+        return "%s %s (%s)" % (self.package, safe_version, self.release)
 
 class BinaryPackage(models.Model):
     """

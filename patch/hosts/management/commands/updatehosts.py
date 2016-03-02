@@ -13,13 +13,12 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.utils import timezone
 
-from joblib import Parallel, delayed
 import requests
 
 from hosts.models import *
 
 class HostinfoClient(object):
-    
+
     def __init__(self, hostinfo_base_url=None):
         self.hostinfo_base_url = hostinfo_base_url or 'http://hostinfo/'
 
@@ -28,14 +27,6 @@ class HostinfoClient(object):
 
     def packages_for_host(self, host_id):
         return json.loads(requests.get("%s/cgi-bin/host-related.pl?&relationship=packages&hostid=%i" % (self.hostinfo_base_url, int(host_id))).content)
-
-    def packages_for_hosts(self, host_ids, jobs=10):
-        responses = Parallel(n_jobs=jobs)(delayed(requests.get)("%s/cgi-bin/host-related.pl?&relationship=packages&hostid=%i" % (self.hostinfo_base_url, i)) for i in host_ids)
-        hosts = {}
-        for response in responses:
-            packages = json.loads(response.content)
-            hosts[packages[0]['hostid']] = packages
-        return hosts
 
     def machineinfo_for_host(self, host_id):
         return json.loads(requests.get("%s/cgi-bin/host-related.pl?&relationship=cat_machineinfos&hostid=%i" % (self.hostinfo_base_url, int(host_id))).content)
@@ -100,16 +91,16 @@ class Command(BaseCommand):
             db_hoststatus = HostStatus(host=db_host, discovery_run=db_discoveryrun, status='present', release=host_data['release'].split(':')[1])
             db_hoststatus.save()
             db_host.current_status = db_hoststatus
-            db_host.save()    
+            db_host.save()
             print "Done"
-        
+
 
         removed_hosts = set(all_database_fingerprints) - set(all_hostinfo_fingerprints)
         print "  %i removed hosts" % len(removed_hosts)
 
         for fingerprint in removed_hosts:
             db_host = Host.objects.get(hostinfo_fingerprint=fingerprint)
-            print "      updating %s..." % db_host.name,           
+            print "      updating %s..." % db_host.name,
             db_hoststatus = HostStatus(host=db_host, discovery_run=db_discoveryrun, status='absent')
             db_hoststatus.save()
             db_host.current_status = db_hoststatus
@@ -143,24 +134,28 @@ class Command(BaseCommand):
             db_package.save()
 
     def handle(self, *args, **options):
-        self.stdout.write(self.style.MIGRATE_HEADING("Updating hosts from hostinfo..."))
+        #self.stdout.write(self.style.MIGRATE_HEADING("Updating hosts from hostinfo..."))
         self.hostinfo_client = HostinfoClient()
 
-        self._update_hostinfo_hosts()
+        #self._update_hostinfo_hosts()
 
         self.stdout.write(self.style.MIGRATE_HEADING("Updating packages for hosts..."))
-        
+
         with transaction.atomic():
             host_statuses = Paginator(HostDiscoveryRun.objects.filter(source='hostinfo').latest('created').hoststatus_set.filter(status='present'), 20)
             for page in host_statuses.page_range:
                 print "    interrogating hostinfo for 20 hosts..."
 
                 host_ids = [host_status.host.hostinfo_id for host_status in host_statuses.page(page)]
-                host_package_data = self.hostinfo_client.packages_for_hosts(host_ids)
 
-                for host_id, packages in host_package_data.iteritems():
-                    host = Host.objects.get(hostinfo_id=host_id)
-                    print "      updating %s..." % host.name,
-                    self._update_packages_for_host(host, packages)
-                    print "Done"
+                for host_id in host_ids:
+                    host_package_data = self.hostinfo_client.packages_for_host(host_id)
+
+# for host_id, packages in host_package_data.iteritems():
+#     host = Host.objects.get(hostinfo_id=host_id)
+#     print "      updating %s..." % host.name,
+
+#     self._update_packages_for_host(host, packages)
+#     print "Done"
+
 
