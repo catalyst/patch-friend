@@ -248,7 +248,7 @@ class UbuntuFeed(object):
         Retrieve the latest JSON data, parse it and add any new advisories to the local database.
         """
         print "  Downloading JSON data..."
-        # self._update_json_advisories()
+        self._update_json_advisories()
         json_advisories = self._parse_json_advisories()
         new_advisories = set(json_advisories) - set([advisory.upstream_id for advisory in Advisory.objects.filter(source='ubuntu')])
 
@@ -272,16 +272,15 @@ class UbuntuFeed(object):
                     for package, package_data in release_data['sources'].items():
                         db_srcpackage = SourcePackage(advisory=db_advisory, package=package, release=release, safe_version=package_data['version'])
                         db_srcpackage.save()
-                    for package, package_data in release_data['binaries'].items():
-                        for architecture in [architecture for architecture in release_data['archs'].keys() if architecture in self.architectures]:
-                            for url in release_data['archs'][architecture]['urls'].keys():
-                                package_filename = url.split('/')[-1]
-                                if not package_filename.endswith('.deb'):
-                                    continue
-                                binary_package_name = package_filename.split('_')[0]
-                                binary_package_version = package_filename.split('_')[1]
-                                db_binpackage = BinaryPackage(advisory=db_advisory, package=binary_package_name, release=release, safe_version=binary_package_version, architecture=architecture)
-                                db_binpackage.save()
+                    for architecture in [architecture for architecture in release_data['archs'].keys() if architecture in self.architectures]:
+                        for url in release_data['archs'][architecture]['urls'].keys():
+                            package_filename = url.split('/')[-1]
+                            if not package_filename.endswith('.deb'):
+                                continue
+                            binary_package_name = package_filename.split('_')[0]
+                            binary_package_version = package_filename.split('_')[1]
+                            db_binpackage = BinaryPackage(advisory=db_advisory, package=binary_package_name, release=release, safe_version=binary_package_version, architecture=architecture)
+                            db_binpackage.save()
             except:
                 print "Error"
                 raise

@@ -24,8 +24,8 @@ class Host(models.Model):
     customer = models.ForeignKey(Customer)
     hostinfo_fingerprint = models.CharField(max_length=200, unique=True, null=True, help_text="This host's fingerprint in hostinfo, if this host was created from hostinfo data")
     hostinfo_id = models.IntegerField(null=True, verbose_name="Hostinfo ID", help_text="This host's ID in hostinfo, if this host was created from hostinfo data")
-    current_status = models.ForeignKey('HostStatus', related_name='+', null=True, help_text="Direct reference to the newest status for this host")
     tags = models.ManyToManyField('Tag', help_text="Tags associated with this host")
+    architecture = models.CharField(max_length=200, help_text="Machine architecture")
 
     def __unicode__(self):
         return self.name
@@ -139,7 +139,7 @@ class PackageStatus(models.Model):
         if self.status == 'present':
             return self.version
         else:
-            return "not installed" 
+            return "not installed"
 
 # Tag models
 
