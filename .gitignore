@@ -2,6 +2,7 @@
 hostinfo-urls
 dsa-cache
 example.json
+patch/catalyst_bootstrap/static/*
 
 # Operating cache
 patch/advisory_cache

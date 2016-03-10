@@ -1,0 +1,51 @@
+{% extends 'reporting/base.html' %}
+
+{% load bootstrap3 %}
+{% load advisory_fields %}
+
+{% block title %}Advisory list{% endblock %}
+
+{% block content %}
+    <h2>Newest advisories</h2>
+    <p>Showing {{ object_list|length }} advisories per page.</p>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Upstream ID</th>
+                <th>Summary</th>
+                <th>Releases</th>
+                <th>Source packages</th>
+                <th>Local severity</th>
+                <th>Reviewed by</th>
+                <th>Issued</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for advisory in object_list %}
+                {% regroup advisory.sourcepackage_set.all by release as release_list %}
+                {% regroup advisory.sourcepackage_set.all by package as source_package_list %}
+
+                <tr>
+                    <td class="advisory-upstream-id"><a href="{{ advisory.get_absolute_url }}">{{ advisory.formal_upstream_id }}</a></td>
+                    <td>{{ advisory.short_description }}</td>
+                    <td>
+                        {% for release in release_list %}
+                            {{ release.grouper }}{% if not forloop.last %}, {% endif %}
+                        {% endfor %}
+                    </td>
+                    <td>
+                        {% for package in source_package_list %}
+                            {{ package.grouper }}{% if not forloop.last %}, {% endif %}
+                        {% endfor %}
+                    </td>
+                    <td>{{ advisory.severity|advisory_severity }}</td>
+                    <td>{{ advisory.reviewed_by|ignore_none }}</td>
+                    <td class="advisory-issued">{{ advisory.issued }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+{% bootstrap_pagination page_obj %}
+
+{% endblock %}

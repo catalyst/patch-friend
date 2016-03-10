@@ -1,0 +1,13 @@
+{% extends 'change_requests/base.html' %}
+{% load bootstrap3 %}
+
+{% block content %}
+    <form role="form" class="form-horizontal" method="post">
+
+
+           {% bootstrap_form form layout="horizontal" %}
+
+        {% buttons submit='Save' layout='horizontal' %}{% endbuttons %}
+    </form>
+
+{% endblock %}

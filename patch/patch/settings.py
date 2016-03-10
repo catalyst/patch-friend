@@ -37,8 +37,11 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-#    'hosts',
+    'bootstrap3',
+    'catalyst_bootstrap',
+    'hosts',
     'advisories',
+    'reporting',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -123,11 +126,21 @@ RELEASES = (
     ('squeeze', 'Debian Squeeze'),
     ('wheezy', 'Debian Wheezy'),
     ('jessie', 'Debian Jessie'),
-    ('precise', 'Ubuntu Precise'),        
+    ('precise', 'Ubuntu Precise'),
     ('trusty', 'Ubuntu Trusty',)
-)  
+)
 
 # Data source plugins
 DATA_SOURCES = (
     ('hostinfo', 'hostinfo'),
 )
+
+SOURCE_ADVISORY_DETAIL_URLS = {
+    ('ubuntu', 'http://www.ubuntu.com/usn/usn-%s/'),
+    ('debian', 'https://security-tracker.debian.org/tracker/%s'),
+}
+
+SOURCE_PACKAGE_DETAIL_URLS = {
+    ('ubuntu', 'http://packages.ubuntu.com/%s/%s'),
+    ('debian', 'https://packages.debian.org/%s/%s'),
+}

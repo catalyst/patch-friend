@@ -1,0 +1,82 @@
+{% extends 'reporting/base.html' %}
+
+{% load bootstrap3 %}
+{% load advisory_fields %}
+
+{% block title %}Advisory {{ object.upstream_id }}{% endblock %}
+
+{% block content %}
+    <table class="horizontal-table">
+        <tr>
+            <th>Source</th><td>{{ object.source|advisory_source }}</td>
+        </tr>
+        <tr>
+            <th>Upstream ID</th><td><a href="{{ object.source_url }}">{{ object.formal_upstream_id }}</a></td>
+        </tr>
+        <tr>
+            <th>Issued</th><td>{{ object.issued }}</td>
+        </tr>
+        <tr class="separate-from-above">
+            <th>Local severity</th><td>{{ advisory.severity|advisory_severity }}</td>
+        </tr>
+        <tr>
+            <th>Reviewed by</th><td>{{ advisory.reviewed_by|ignore_none }}</td>
+        </tr>
+        <tr class="separate-from-above">
+            <th>Summary</th><td>{{ advisory.short_description }}</td>
+        </tr>
+        <tr class="separate-from-above">
+            <th>Description</th><td>{{ advisory.description|ignore_none|paragraphbreaks }}</td>
+        </tr>
+        <tr>
+            <th>Required action</th><td>{{ advisory.action|ignore_none|paragraphbreaks }}</td>
+        </tr>
+        <tr class="separate-from-above">
+            <th>Affected source packages</th>
+            <td>
+                {% regroup object.sourcepackage_set.all by release as release_list %}
+                <table class="table package-table">
+                    {% for release in release_list %}
+                        <thead>
+                            <tr class="release-name{% if forloop.first %}-first{% endif %}">
+                                <th colspan="2">{{ release.grouper|advisory_release }}</th>
+                            <tr>
+                                <th class="package-name">Package</th><th>Safe version</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in release.list %}
+                                <tr>
+                                    <td class="package-name"><a href="{{ item.source_url }}">{{ item.package }}</a></td><td>{{ item.safe_version }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    {% endfor %}
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <th>Affected binary packages</th>
+            <td>
+                <table class="table package-table">
+                    {% for release_name, release in binary_packages.items %}
+                        <thead>
+                            <tr class="release-name{% if forloop.first %}-first{% endif %}">
+                                <th colspan="3">{{ release_name|advisory_release }}</th>
+                            <tr>
+                                <th class="package-name">Package</th><th>Safe version</th><th>Architectures</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for key, package_data in release.items %}
+                                <tr>
+                                    <td class="package-name"><a href="{{ package_data.package.source_url }}">{{ package_data.package.package }}</a></td><td>{{ package_data.package.safe_version }}</td><td>{{ package_data.architectures|join:", " }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    {% endfor %}
+                </table>
+            </td>
+        </tr>
+    </table>
+{% endblock %}

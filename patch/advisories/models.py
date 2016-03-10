@@ -19,12 +19,26 @@ class Advisory(models.Model):
 
     class Meta:
         verbose_name_plural = "advisories"
+        ordering = ["-issued"]
 
     def __unicode__(self):
         return self.upstream_id
 
+    def get_absolute_url(self):
+        from django.core.urlresolvers import reverse
+        return reverse('advisory_detail', args=(self.upstream_id, ))
+
     def source_package_names(self):
         return ", ".join([package.__unicode__() for package in self.sourcepackage_set.all()])
+
+    def source_url(self):
+        return dict(settings.SOURCE_ADVISORY_DETAIL_URLS)[self.source] % self.upstream_id
+
+    def formal_upstream_id(self):
+        if self.source == 'ubuntu':
+            return "USN-%s" % self.upstream_id
+        else:
+            return self.upstream_id
 
 class SourcePackage(models.Model):
     """
@@ -38,6 +52,10 @@ class SourcePackage(models.Model):
     release = models.CharField(choices=settings.RELEASES,max_length=32, help_text="Specific release to which this package belongs")
     safe_version = models.CharField(max_length=200, help_text="Package version that is to be considered 'safe' at the issue of this advisory")
 
+    class Meta:
+        verbose_name_plural = "source packages"
+        ordering = ["-package"]
+
     def __unicode__(self):
         safe_version = self.safe_version
 
@@ -45,6 +63,9 @@ class SourcePackage(models.Model):
             safe_version = ''
 
         return "%s %s (%s)" % (self.package, safe_version, self.release)
+
+    def source_url(self):
+        return dict(settings.SOURCE_PACKAGE_DETAIL_URLS)[self.advisory.source] % (self.release, self.package)
 
 class BinaryPackage(models.Model):
     """
@@ -63,9 +84,15 @@ class BinaryPackage(models.Model):
     safe_version = models.CharField(max_length=200, null=True, help_text="Package version that is to be considered 'safe' at the issue of this advisory")
     architecture = models.CharField(max_length=200, null=True, help_text="Machine architecture")
 
+    class Meta:
+        verbose_name_plural = "binary packages"
+        ordering = ["-package"]
+
     def __unicode__(self):
         if self.safe_version:
             return "%s %s (%s, %s)" % (self.package, self.safe_version, self.release, self.architecture)
         else:
             return "%s (%s, %s)" % (self.package, self.release, self.architecture)
 
+    def source_url(self):
+        return dict(settings.SOURCE_PACKAGE_DETAIL_URLS)[self.advisory.source] % (self.release, self.package)

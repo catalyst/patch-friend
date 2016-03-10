@@ -1,0 +1,112 @@
+{% extends 'change_requests/base.html' %}
+{% load bootstrap3 %}
+
+{% block title %}Request detail{% endblock %}
+
+{% block content %}
+    <div class="row">
+
+        <div class="col-md-8">
+
+            <dl class="dl-horizontal">
+                <dt>&nbsp;</dt><dd>
+                    <h1>{{ object.name }}</h1><br>
+                    {% if revision.get_previous_by_created %}
+                        <a href="{{ revision.get_previous_by_created.id }}">← Older revision</a>
+                    {% elif revision.get_next_by_created %}
+                        Oldest revision
+                    {% endif %}
+
+                    {% if revision.get_next_by_created %}
+                        <a href="{{ revision.get_next_by_created.id }}">Newer revision →</a>
+                    {% elif revision.get_previous_by_created %}
+                        Newest revision
+                    {% endif %}                    
+                </dd>
+            </dl>
+            
+            <dl class="dl-horizontal">   
+                <dt>Originally requested</dt><dd>{{ object.created }} by {{ object.user }}</dd>
+                <dt>Status</dt><dd>{{ object.status.text }}</dd>
+
+            </dl>
+
+            <dl class="dl-horizontal">
+                <dt>&nbsp;</dt><dd><strong>Revision {{ revision.created }} by {{ revision.user }}</strong></dd>
+            </dl>
+
+            <dl class="dl-horizontal">
+                    <dt>Implementation date</dt><dd>{{ revision.implemented }}</dd>
+            </dl>
+
+            <dl class="dl-horizontal">   
+                {% for answer in revision.answer_set.all %}
+                    <dt>{{ answer.question.name }}</dt><dd>{{ answer.text }}</dd>
+                {% endfor %}
+            </dl>   
+
+        </div>
+        <div class="col-md-4" style="padding-top: 90px;">
+            {% if not revision.get_next_by_created %}
+
+                <form class="form-inline" method="POST" >
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <dl class="dl-horizontal">
+                            <dt style="width: 80px;">Comment</dt>
+                            <dd style="margin-left: 100px; padding-bottom: 10px;"><textarea style="width: 260px;" id="text" name="text" class="form-control" rows="6" ></textarea></dd>
+
+                            <dt style="width: 80px;">Resolve</dt>
+                            <dd style="margin-left: 100px;">
+                                <button type="submit" style="margin-top: 5px;" class="pull-right btn btn-default">Add comment</button>
+                                <div class="radio">
+                                <label>
+                                <input name="resolve" id="nothing" value="nothing"  checked=""  type="radio">
+                                Comment only
+                                </label>
+                                </div>
+                                <br>
+
+                                <div class="radio" style="padding-right: 5px;">
+                                <label>
+                                <input name="resolve" id="approve" value="approve" type="radio">
+                                Approve
+                                </label>
+                                </div>
+                                <div class="radio">
+                                <label>
+                                <input name="resolve" id="reject" value="reject" type="radio">
+                                Reject
+                                </label>
+                                </div>
+                            </dd>
+                        </dl>
+                    </div>
+
+                </form>
+            {% endif %}
+            {% for comment in revision.comment_set.all %}
+            {% if comment.approves %}
+                <div class="alert alert-success">
+            {% elif comment.rejects %}
+                <div class="alert alert-danger">
+            {% else %}
+                <div class="alert alert-info">
+            {% endif %}
+
+                    <strong>{{ comment.user }}</strong>
+                    {% if comment.approves %}
+                        <em>Approved</em>
+                    {% elif comment.rejects %}
+                        <em>Rejected</em>
+                    {% endif %}                    
+                    <span class="pull-right">
+                        {{ comment.created }}
+                    </span>
+                    <br class="clearfix"><br>
+                    {{ comment.text }}
+                </div>
+            {% endfor %}            
+        </div>
+    </div>         
+{% endblock %}
