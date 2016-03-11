@@ -47,11 +47,11 @@
                 {% regroup advisory.sourcepackage_set.all by package as source_package_list %}
 
                 <tr>
-                    <td class="advisory-upstream-id"><a href="{{ advisory.get_absolute_url }}">{{ advisory.formal_upstream_id }}</a></td>
+                    <td class="advisory-upstream-id"><a href="{{ advisory.get_absolute_url }}?{{ pagination_extra }}">{{ advisory.upstream_id }}</a></td>
                     <td>{{ advisory.short_description }}</td>
                     <td>
                         {% for release in release_list %}
-                            {{ release.grouper }}{% if not forloop.last %}, {% endif %}
+                            {{ release.grouper|title }}{% if not forloop.last %}, {% endif %}
                         {% endfor %}
                     </td>
                     <td>

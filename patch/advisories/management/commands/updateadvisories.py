@@ -158,7 +158,10 @@ class DebianFeed(object):
         for advisory in new_advisories:
             print "    downloading %s..." % advisory,
             search_packages = set()
-            db_advisory = Advisory(upstream_id=advisory, source="debian", issued=svn_advisories[advisory]['issued'], short_description=svn_advisories[advisory]['description'])
+            description = svn_advisories[advisory]['description']
+            description = description[0].upper() + description[1:]
+
+            db_advisory = Advisory(upstream_id=advisory, source="debian", issued=svn_advisories[advisory]['issued'], short_description=description)
             db_advisory.save()
             for package, versions in svn_advisories[advisory]['packages'].iteritems():
                 for release, version in versions.iteritems():
@@ -260,7 +263,7 @@ class UbuntuFeed(object):
         print "  Downloading JSON data..."
         self._update_json_advisories()
         json_advisories = self._parse_json_advisories()
-        new_advisories = set(json_advisories) - set([advisory.upstream_id for advisory in Advisory.objects.filter(source='ubuntu')])
+        new_advisories = set(json_advisories) - set(['-'.join(advisory.upstream_id.split('-')[1:]) for advisory in Advisory.objects.filter(source='ubuntu')])
 
         print "  %i new USNs to process" % len(new_advisories)
 
@@ -272,7 +275,7 @@ class UbuntuFeed(object):
             try:
                 advisory_data = json_advisories[advisory]
                 db_advisory = Advisory(
-                    upstream_id=advisory,
+                    upstream_id="USN-%s" % advisory,
                     source="ubuntu",
                     issued=datetime.utcfromtimestamp(advisory_data['timestamp']).replace(tzinfo=pytz.utc),
                     description=advisory_data.get('description', None),

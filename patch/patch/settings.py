@@ -132,11 +132,11 @@ ADVISORY_SEVERITY_CLASSES = (
 
 # Current stable releases
 RELEASES = (
-    ('squeeze', 'Debian Squeeze'),
-    ('wheezy', 'Debian Wheezy'),
-    ('jessie', 'Debian Jessie'),
-    ('precise', 'Ubuntu Precise'),
-    ('trusty', 'Ubuntu Trusty',)
+    ('squeeze', 'Debian Squeeze 6.0'),
+    ('wheezy', 'Debian Wheezy 7.0'),
+    ('jessie', 'Debian Jessie 8.0'),
+    ('precise', 'Ubuntu Precise LTS 12.04'),
+    ('trusty', 'Ubuntu Trusty LTS 14.04',)
 )
 
 # Data source plugins
@@ -145,7 +145,7 @@ DATA_SOURCES = (
 )
 
 SOURCE_ADVISORY_DETAIL_URLS = {
-    ('ubuntu', 'http://www.ubuntu.com/usn/usn-%s/'),
+    ('ubuntu', 'http://www.ubuntu.com/usn/%s/'),
     ('debian', 'https://security-tracker.debian.org/tracker/%s'),
 }
 

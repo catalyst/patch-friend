@@ -35,12 +35,6 @@ class Advisory(models.Model):
     def source_url(self):
         return dict(settings.SOURCE_ADVISORY_DETAIL_URLS)[self.source] % self.upstream_id
 
-    def formal_upstream_id(self):
-        if self.source == 'ubuntu':
-            return "USN-%s" % self.upstream_id
-        else:
-            return self.upstream_id
-
 class SourcePackage(models.Model):
     """
     Source package to which an advisory refers. These are not of a direct concern to hosts, as source packages are not actually "installed".

@@ -22,31 +22,28 @@ class HostinfoClient(object):
     def __init__(self, hostinfo_base_url=None):
         self.hostinfo_base_url = hostinfo_base_url or 'http://hostinfo/'
 
-    def all_hosts(self):
+    def all_hosts_and_packages(self):
         return json.loads(requests.get("%s/cgi-bin/hosts.pl" % self.hostinfo_base_url).content).get('hosts', [])
-
-    def packages_for_host(self, host_id):
-        return json.loads(requests.get("%s/cgi-bin/host-related.pl?&relationship=packages&hostid=%i" % (self.hostinfo_base_url, int(host_id))).content)
-
-    def machineinfo_for_host(self, host_id):
-        return json.loads(requests.get("%s/cgi-bin/host-related.pl?&relationship=cat_machineinfos&hostid=%i" % (self.hostinfo_base_url, int(host_id))).content)
 
 class Command(BaseCommand):
     help = 'Update all sources of hosts and packages'
 
+    def _parse_hostinfo_json(self):
+        # XXX hard coded dev path
+
+        with open("/home/fincham/Documents/Development/catalyst/patch-friend/packagecache.json") as hostinfo_data:
+            return json.loads(hostinfo_data.read())
+
     @transaction.atomic
     def _update_hostinfo_hosts(self):
         try:
-            all_database_hosts = HostDiscoveryRun.objects.filter(source='hostinfo').latest('created').hoststatus_set.filter(status='present')
+            all_database_hosts = Host.objects.filter(source='hostinfo')
         except: # XXX make check for missing HostDiscoveryRun more specific
             all_database_hosts = []
 
-        db_discoveryrun = HostDiscoveryRun(source="hostinfo")
-        db_discoveryrun.save()
-
-        all_hostinfo_hosts = self.hostinfo_client.all_hosts()
+        all_hostinfo_hosts = self._parse_hostinfo_json()
         all_database_fingerprints = [host.host.hostinfo_fingerprint for host in all_database_hosts]
-        all_hostinfo_fingerprints = {host['fingerprint']: host for host in all_hostinfo_hosts}
+        all_hostinfo_fingerprints = {host['metadata']['fingerprint']: host for hostname, host in all_hostinfo_hosts.iteritems()}
 
         new_hosts = set(all_hostinfo_fingerprints) - set(all_database_fingerprints)
 
@@ -54,7 +51,7 @@ class Command(BaseCommand):
 
         for fingerprint, host_data in all_hostinfo_fingerprints.iteritems():
             print "      updating %s..." % host_data['hostname'],
-            db_host, db_host_created = Host.objects.get_or_create(hostinfo_fingerprint=fingerprint, defaults={'hostinfo_id': host_data['hostid'], 'customer': Customer(1), 'name': host_data['hostname']})
+            db_host, db_host_created = Host.objects.get_or_create(hostinfo_fingerprint=fingerprint, defaults={'hostinfo_id': host_data['metadata']['hostid'], 'customer': Customer(1), 'name': host_data['hostname']})
 
             if db_host_created:
                 tags = []
@@ -134,10 +131,12 @@ class Command(BaseCommand):
             db_package.save()
 
     def handle(self, *args, **options):
-        #self.stdout.write(self.style.MIGRATE_HEADING("Updating hosts from hostinfo..."))
+        self.stdout.write(self.style.MIGRATE_HEADING("Updating hosts from hostinfo..."))
         self.hostinfo_client = HostinfoClient()
 
-        #self._update_hostinfo_hosts()
+        self._update_hostinfo_hosts()
+
+        return
 
         self.stdout.write(self.style.MIGRATE_HEADING("Updating packages for hosts..."))
 
