@@ -4,14 +4,19 @@
 {% load staticfiles %}
 
 {% block bootstrap3_extra_head %}
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
     <link href="{% static "catalyst_bootstrap/css/styles.css" %}" rel="stylesheet">
     <style type="text/css">
         .catalyst-scarf div {
             line-height: 2px;
         }
 
-        .separate-from-above th, .separate-from-above td {
-            padding-top: 10px;
+        .separate-from-above th, .separate-from-above td, form.separate-from-above {
+            padding-top: 10px ;
+        }
+
+        table.separate-from-above {
+            margin-top: 15px !important;
         }
 
         th, .advisory-upstream-id, .advisory-issued {
@@ -48,6 +53,25 @@
         .package-name {
             width: 200px;
         }
+
+        .search-field-group span {
+            color: silver;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+
+        .searchclear {
+            position: absolute;
+            right: 5px;
+            top: 0;
+            z-index: 10; top: 10px;
+            height: 14px;
+            margin: auto;
+            font-size: 14px;
+            cursor: pointer;
+            color: #ccc;
+        }
+
     </style>
 {% endblock %}
 
@@ -78,4 +102,30 @@
         {% block content %}(no content){% endblock %}
     </div>
 
+
+    <script>
+        // handle forms and pagination
+
+        $(".hasclear").keyup(function () {
+            $(this).next('span').toggle(Boolean($(this).val()));
+        });
+
+        $(".submit-automatically").change(function() {
+            $(this).closest("form").submit();
+        });
+
+        if ($(".hasclear").val() == '') {
+            $(".clearer").hide($(this).prev('input').val());
+
+            $(".clearer").click(function () {
+                $(this).prev('input').val('').focus();
+                $(this).hide();
+            });
+        } else {
+            $(".clearer").click(function () {
+                $(this).prev('input').val('').focus();
+                $(this).closest("form").submit();
+            });
+        }
+    </script>
 {% endblock %}

@@ -6,9 +6,28 @@
 {% block title %}Advisory list{% endblock %}
 
 {% block content %}
-    <h2>Newest advisories</h2>
-    <p>Showing {{ object_list|length }} advisories per page.</p>
-    <table class="table">
+    <h2>Advisories</h2>
+
+    <form class="separate-from-above form-inline" method="GET">
+        <div class="search-field-group form-group pull-right has-feedback">
+            <input type="text" class="hasclear form-control" placeholder="Search..." name="q" value="{{ q }}">
+             <span class="clearer glyphicon glyphicon-remove-circle form-control-feedback"></span>
+        </div>
+
+        <div class="form-group">
+            Show
+            <select class="form-control submit-automatically" name="paginate_by">
+                <option {% if paginate_by == '25' %}selected{% endif %}>25</option>
+                <option {% if paginate_by == '50' %}selected{% endif %}>50</option>
+                <option {% if paginate_by == '75' %}selected{% endif %}>75</option>
+                <option {% if paginate_by == '100' %}selected{% endif %}>100</option>
+            </select>
+            advisories per page.
+        </div>
+    </form>
+
+
+    <table class="table separate-from-above">
         <thead>
             <tr>
                 <th>Upstream ID</th>
@@ -46,6 +65,7 @@
         </tbody>
     </table>
 
-{% bootstrap_pagination page_obj %}
-
+    <div class="text-center">
+        {% bootstrap_pagination page_obj %}
+    </div>
 {% endblock %}

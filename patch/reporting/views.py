@@ -11,8 +11,17 @@ from advisories.models import *
 class AdvisoryIndexView(SearchableListMixin, generic.ListView):
     model = Advisory
     template_name = "reporting/advisory_list.html"
-    paginate_by = 20
+    paginate_by = 25
     search_fields = ['upstream_id']
+
+    def get_paginate_by(self, queryset):
+        return self.request.GET.get('paginate_by', self.paginate_by)
+
+    def get_context_data(self, **kwargs):
+        context = super(AdvisoryIndexView, self).get_context_data(**kwargs)
+        context['paginate_by'] = self.request.GET.get('paginate_by', self.paginate_by)
+        context['q'] = self.request.GET.get('q', '')
+        return context
 
 class AdvisoryDetailView(generic.DetailView):
     model = Advisory
