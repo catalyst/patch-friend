@@ -39,6 +39,9 @@ def paragraphbreaks(value, autoescape=True):
         esc = conditional_escape
     else:
         esc = lambda x: x
+
+    value = value.replace('\r\n', '\n') # fix windows linebreaks
+
     result = '<p>%s</p>' % '</p><p>'.join(esc(value).split('\n\n'))
     return mark_safe(result)
 

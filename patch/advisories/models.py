@@ -14,8 +14,9 @@ class Advisory(models.Model):
     action = models.TextField(null=True, help_text="What, if any, actions need to be taken to address the advisory")
     issued = models.DateTimeField(default=timezone.now, help_text="Date and time at which the advisory was issued")
     source = models.CharField(choices=settings.ADVISORY_SOURCES, max_length=32, help_text="Vendor source of the advisory")
-    severity = models.CharField(choices=settings.ADVISORY_SEVERITIES, max_length=32, default=0, help_text="Local severity of the advisory, once it has been reviewed")
-    reviewed_by = models.ForeignKey(User, null=True, help_text="Person who locally reviewed the advisory for its overall severity (or None if the severity was determined automatically)")
+    severity = models.IntegerField(blank=True, choices=settings.ADVISORY_SEVERITIES, default=0, help_text="Local severity of the advisory, once it has been reviewed")
+    reviewed_by = models.ForeignKey(User, blank=True, null=True, help_text="Person who locally reviewed the advisory for its overall severity (or None if the severity was determined automatically)")
+    search_packages = models.TextField(blank=True, null=True, help_text="Space separated list of source and binary packages used to speed up search")
 
     class Meta:
         verbose_name_plural = "advisories"
@@ -78,7 +79,7 @@ class BinaryPackage(models.Model):
     """
 
     advisory = models.ForeignKey(Advisory, help_text="Advisory to which this package belongs")
-    source_package = models.ForeignKey(SourcePackage, null=True, help_text="If set, the source package from which this binary package was generated")
+    source_package = models.ForeignKey(SourcePackage, blank=True, null=True, help_text="If set, the source package from which this binary package was generated")
     package = models.CharField(max_length=200, help_text="Name of binary package")
     release = models.CharField(choices=settings.RELEASES,max_length=32, help_text="Specific release to which this package belongs")
     safe_version = models.CharField(max_length=200, null=True, help_text="Package version that is to be considered 'safe' at the issue of this advisory")
