@@ -28,6 +28,14 @@ def advisory_severity(value):
 
 @register.filter
 @stringfilter
+def advisory_severity_class(value):
+    if value == '0':
+        return ''
+
+    return dict(settings.ADVISORY_SEVERITY_CLASSES)[int(value)]
+
+@register.filter
+@stringfilter
 def ignore_none(value):
     if value == 'None':
         return ''
@@ -46,4 +54,3 @@ def paragraphbreaks(value, autoescape=True):
 
     result = '<p>%s</p>' % '</p><p>'.join(esc(value).split('\n\n'))
     return mark_safe(result)
-

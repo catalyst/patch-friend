@@ -1,5 +1,6 @@
 {% extends 'reporting/base.html' %}
 
+{% load humanize %}
 {% load bootstrap3 %}
 {% load advisory_fields %}
 
@@ -22,7 +23,8 @@
                 <option {% if paginate_by == '75' %}selected{% endif %}>75</option>
                 <option {% if paginate_by == '100' %}selected{% endif %}>100</option>
             </select>
-            advisories per page.
+            advisories per page. Found {{ paginator.count|apnumber }} {% if q != '' %}matching{% endif %} advisor{{ paginator.count|pluralize:"y,ies" }}.
+
         </div>
     </form>
 
@@ -57,7 +59,7 @@
                             {{ package.grouper }}{% if not forloop.last %}, {% endif %}
                         {% endfor %}
                     </td>
-                    <td>{{ advisory.severity|advisory_severity }}</td>
+                    <td class="{{ advisory.severity|advisory_severity_class }}">{{ advisory.severity|advisory_severity }}</td>
                     <td>{{ advisory.reviewed_by|ignore_none }}</td>
                     <td class="advisory-issued">{{ advisory.issued }}</td>
                 </tr>
@@ -66,6 +68,6 @@
     </table>
 
     <div class="text-center">
-        {% bootstrap_pagination page_obj %}
+        {% bootstrap_pagination page_obj extra=pagination_extra %}
     </div>
 {% endblock %}

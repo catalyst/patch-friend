@@ -37,6 +37,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
     'bootstrap3',
     'catalyst_bootstrap',
     'hosts',
@@ -119,6 +120,14 @@ ADVISORY_SEVERITIES = (
     (2, 'Standard'),
     (3, 'High'),
     (4, 'Critical'),
+)
+
+ADVISORY_SEVERITY_CLASSES = (
+    (0, ''),
+    (1, 'text-muted'),
+    (2, 'text-info'),
+    (3, 'text-warning'),
+    (4, 'text-danger'),
 )
 
 # Current stable releases
