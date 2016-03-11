@@ -1,3 +1,5 @@
+import textwrap
+
 from django import template
 from django.conf import settings
 from django.template.defaultfilters import stringfilter
@@ -40,7 +42,7 @@ def paragraphbreaks(value, autoescape=True):
     else:
         esc = lambda x: x
 
-    value = value.replace('\r\n', '\n') # fix windows linebreaks
+    value = textwrap.dedent(value).replace('\r\n', '\n') # fix windows linebreaks
 
     result = '<p>%s</p>' % '</p><p>'.join(esc(value).split('\n\n'))
     return mark_safe(result)

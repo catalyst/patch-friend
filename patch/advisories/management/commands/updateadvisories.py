@@ -157,6 +157,7 @@ class DebianFeed(object):
 
         for advisory in new_advisories:
             print "    downloading %s..." % advisory,
+            search_packages = set()
             db_advisory = Advisory(upstream_id=advisory, source="debian", issued=svn_advisories[advisory]['issued'], short_description=svn_advisories[advisory]['description'])
             db_advisory.save()
             for package, versions in svn_advisories[advisory]['packages'].iteritems():
@@ -164,6 +165,8 @@ class DebianFeed(object):
                     # make the source package object
                     db_srcpackage = SourcePackage(advisory=db_advisory, package=package, release=release, safe_version=version)
                     db_srcpackage.save()
+                    search_packages.add(package)
+                    search_packages.add(version)
 
                     # attempt by convoluted means to get the binary packages for that source package
                     try:
@@ -172,6 +175,8 @@ class DebianFeed(object):
                                 for architecture in binary_package_architectures:
                                     db_binpackage = BinaryPackage(source_package=db_srcpackage, advisory=db_advisory, package=binary_package_name, release=release, safe_version=version, architecture=architecture)
                                     db_binpackage.save()
+                                    search_packages.add(binary_package_name)
+                                    search_packages.add(version)
                         else: # package is not latest in the repo, hopefully it's on snapshots.d.o
                             snapshot_url = "%s/mr/package/%s/%s/allfiles" % (self.snapshot_url, package, version)
                             snapshot_response = requests.get(snapshot_url)
@@ -185,6 +190,11 @@ class DebianFeed(object):
                                 for architecture in snapshot_binary_architectures:
                                     db_binpackage = BinaryPackage(source_package=db_srcpackage, advisory=db_advisory, package=snapshot_binary['name'], release=release, safe_version=snapshot_binary['version'], architecture=architecture)
                                     db_binpackage.save()
+                                    search_packages.add(snapshot_binary['name'])
+                                    search_packages.add(snapshot_binary['version'])
+
+                        db_advisory.search_packages = " ".join(search_packages)
+                        db_advisory.save()
 
                         print "OK"
                     except:
@@ -257,6 +267,8 @@ class UbuntuFeed(object):
         for advisory in new_advisories:
             print "    processing USN %s..." % advisory,
 
+            search_packages = set()
+
             try:
                 advisory_data = json_advisories[advisory]
                 db_advisory = Advisory(
@@ -272,6 +284,8 @@ class UbuntuFeed(object):
                     for package, package_data in release_data['sources'].items():
                         db_srcpackage = SourcePackage(advisory=db_advisory, package=package, release=release, safe_version=package_data['version'])
                         db_srcpackage.save()
+                        search_packages.add(package)
+                        search_packages.add(package_data['version'])
                     for architecture in [architecture for architecture in release_data['archs'].keys() if architecture in self.architectures]:
                         for url in release_data['archs'][architecture]['urls'].keys():
                             package_filename = url.split('/')[-1]
@@ -281,10 +295,14 @@ class UbuntuFeed(object):
                             binary_package_version = package_filename.split('_')[1]
                             db_binpackage = BinaryPackage(advisory=db_advisory, package=binary_package_name, release=release, safe_version=binary_package_version, architecture=architecture)
                             db_binpackage.save()
+                            search_packages.add(binary_package_name)
+                            search_packages.add(binary_package_version)
             except:
                 print "Error"
                 raise
             else:
+                db_advisory.search_packages = " ".join(search_packages)
+                db_advisory.save()
                 print "OK"
 
 class Command(BaseCommand):
