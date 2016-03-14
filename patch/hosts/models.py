@@ -25,6 +25,10 @@ class Host(models.Model):
         ('absent', 'Absent'),
     )
 
+    SOURCES = (
+        ('hostinfo', 'hostinfo'),
+    )
+
     name = models.CharField(max_length=200, help_text="A name to refer to the host, usually the hostname.")
     customer = models.ForeignKey(Customer)
     hostinfo_fingerprint = models.CharField(max_length=200, unique=True, null=True, help_text="This host's fingerprint in hostinfo, if this host was created from hostinfo data.")
@@ -34,6 +38,7 @@ class Host(models.Model):
     release = models.CharField(max_length=200, help_text="Operating system release.")
     status = models.CharField(choices=STATUSES, max_length=32, help_text="Whether the host exists or not.")
     updated = models.DateTimeField(auto_now_add=True, help_text="When this status was discovered.")
+    source = models.CharField(choices=SOURCES, max_length=32, help_text="Source of this host's data.")
 
     def __unicode__(self):
         return self.name

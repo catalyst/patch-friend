@@ -36,27 +36,26 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def _update_hostinfo_hosts(self):
-        try:
-            all_database_hosts = Host.objects.filter(source='hostinfo')
-        except: # XXX make check for missing HostDiscoveryRun more specific
-            all_database_hosts = []
 
+        all_database_hosts = Host.objects.filter(source='hostinfo')
         all_hostinfo_hosts = self._parse_hostinfo_json()
-        all_database_fingerprints = [host.host.hostinfo_fingerprint for host in all_database_hosts]
-        all_hostinfo_fingerprints = {host['metadata']['fingerprint']: host for hostname, host in all_hostinfo_hosts.iteritems()}
 
-        new_hosts = set(all_hostinfo_fingerprints) - set(all_database_fingerprints)
+        all_database_fingerprints = set([host.hostinfo_fingerprint for host in all_database_hosts])
+        all_hostinfo_fingerprints = set([host['metadata']['fingerprint'] for hostname, host in all_hostinfo_hosts.iteritems()])
+
+        new_hosts = all_hostinfo_fingerprints - all_database_fingerprints
+        hosts_to_remove = all_database_fingerprints - all_hostinfo_fingerprints
 
         print "  %i hosts found (%i new)" % (len(all_hostinfo_fingerprints), len(new_hosts))
 
-        for fingerprint, host_data in all_hostinfo_fingerprints.iteritems():
-            print "      updating %s..." % host_data['hostname'],
-            db_host, db_host_created = Host.objects.get_or_create(hostinfo_fingerprint=fingerprint, defaults={'hostinfo_id': host_data['metadata']['hostid'], 'customer': Customer(1), 'name': host_data['hostname']})
+        for hostname, host_data in all_hostinfo_hosts.iteritems():
+            print "      updating %s..." % hostname,
+            db_host, db_host_created = Host.objects.get_or_create(hostinfo_fingerprint=host_data['metadata']['fingerprint'], defaults={'hostinfo_id': host_data['metadata']['hostid'], 'customer': Customer(1), 'name': hostname})
 
             if db_host_created:
                 tags = []
                 customer = None
-                for attribute in self.hostinfo_client.machineinfo_for_host(host_data['hostid']):
+                for attribute in host_data['machineinfo']:
                     db_importedattributes, db_importedattributes_created = HostImportedAttribute.objects.get_or_create(host=db_host, key=attribute['key'], value=attribute['value'])
 
                     if attribute['key'] == 'CLIENT':
@@ -81,54 +80,47 @@ class Command(BaseCommand):
                         db_host.tags.add(db_tag)
 
             try:
-                release = host_data['release'].split(':')[1]
+                release = host_data['metadata']['release'].split(':')[1]
             except:
                 release = ''
 
-            db_hoststatus = HostStatus(host=db_host, discovery_run=db_discoveryrun, status='present', release=host_data['release'].split(':')[1])
-            db_hoststatus.save()
-            db_host.current_status = db_hoststatus
+            try:
+                architecture = host_data['metadata']['hardware'].strip()
+                if architecture:
+                    architecture = architecture.replace('i686','i386')
+                    architecture = architecture.replace('x86_64','amd64')
+            except:
+                architecture = ''
+
+            db_host.status = 'present'
+            db_host.release = release
+            db_host.architecture = architecture
+            db_host.source = 'hostinfo'
             db_host.save()
+
+            all_hostinfo_packages = set([package['name'] for package in host_data['packages']])
+            all_database_packages = set([package.name for packages in db_host.package_set.all()])
+
+            for package in host_data['packages']:
+                if package['status'] == 'ii':
+                    status = 'present'
+                else:
+                    status = 'absent'
+
+                db_package, created = db_host.package_set.update_or_create(defaults={"version": package['version'], "status": status}, name=package['name'])
+
             print "Done"
 
 
-        removed_hosts = set(all_database_fingerprints) - set(all_hostinfo_fingerprints)
-        print "  %i removed hosts" % len(removed_hosts)
+        print "  %i removed hosts" % len(hosts_to_remove)
 
-        for fingerprint in removed_hosts:
+        for fingerprint in hosts_to_remove:
             db_host = Host.objects.get(hostinfo_fingerprint=fingerprint)
             print "      updating %s..." % db_host.name,
-            db_hoststatus = HostStatus(host=db_host, discovery_run=db_discoveryrun, status='absent')
-            db_hoststatus.save()
-            db_host.current_status = db_hoststatus
+            db_host.status = 'absent'
             db_host.save()
             print "Done"
 
-    def _update_packages_for_host(self, host, packages=None):
-        try:
-            current_database_packages = host.packagediscoveryrun_set.latest('created').package_set.filter(status='present')
-        except:
-            current_database_packages = []
-
-        db_discoveryrun = PackageDiscoveryRun(source="hostinfo", host=host)
-        db_discoveryrun.save()
-
-        if not packages:
-            hostinfo_packages = self.hostinfo_client.packages_for_host(host.hostinfo_id)
-        else:
-            hostinfo_packages = packages
-
-        for package in hostinfo_packages:
-            if package['status'] == 'ii': # installed
-                status = 'present'
-            else:
-                status = 'absent'
-
-            db_package, db_package_created = Package.objects.get_or_create(name=package['package'], host=host)
-            db_packagestatus = PackageStatus(package=db_package, discovery_run=db_discoveryrun, status=status, version=package['version'])
-            db_packagestatus.save()
-            db_package.current_status = db_packagestatus
-            db_package.save()
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.MIGRATE_HEADING("Updating hosts from hostinfo..."))

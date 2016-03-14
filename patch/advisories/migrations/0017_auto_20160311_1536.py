@@ -11,7 +11,11 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterField(
+        migrations.RemoveField(
+            model_name='advisory',
+            name='severity'
+        ),
+        migrations.AddField(
             model_name='advisory',
             name='severity',
             field=models.IntegerField(default=0, help_text=b'Local severity of the advisory, once it has been reviewed', choices=[(0, b'Undecided'), (1, b'Low'), (2, b'Standard'), (3, b'High'), (4, b'Critical')]),

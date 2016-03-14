@@ -27,9 +27,9 @@ class HostSupportedListFilter(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value() == 'supported':
-            return queryset.filter(current_status__release__in=[rel for rel, name in settings.RELEASES])
+            return queryset.filter(release__in=[rel for rel, name in settings.RELEASES])
         if self.value() == 'unsupported':
-            return queryset.exclude(current_status__release__in=[rel for rel, name in settings.RELEASES])
+            return queryset.exclude(release__in=[rel for rel, name in settings.RELEASES])
 
 class PackageInline(admin.StackedInline):
     model = Package
@@ -40,7 +40,7 @@ class PackageInline(admin.StackedInline):
 class HostAdmin(admin.ModelAdmin):
     inlines = [HostImportedAttributeInline, PackageInline]
     search_fields = ['name']
-    list_display = ['name', 'customer', 'release', 'hostinfo_fingerprint', 'package_count']
+    list_display = ['name', 'release', 'hostinfo_fingerprint', 'package_count']
     list_filter = ['status', 'release', 'architecture', HostSupportedListFilter]
 
     def get_queryset(self, request):

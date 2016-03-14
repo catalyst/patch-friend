@@ -18,8 +18,8 @@ my $schema = Hostinfo::DB->getSchema();
 
 my $hosts = $schema->resultset('Host')->search(
     {},
-    { 
-        columns  => [ qw/hostid hostname hardware release fingerprint/ ],
+    {
+        columns  => [ qw/hostid hostname hardware release updated fingerprint/ ],
     },
 );
 
@@ -40,7 +40,7 @@ while (my $host = $hosts->next) {
     my $packages = $host->search_related('packages', {}, {
         columns => [ qw/package status version/ ],
     });
-    
+
     my $machineinfo = $host->search_related('cat_machineinfos', {}, {
         columns => [ qw/key value/ ],
     });
@@ -48,7 +48,7 @@ while (my $host = $hosts->next) {
     while (my $p = $packages->next) {
         push @packages, { name => $p->package, status => $p->status, version => $p->version };
     }
-    
+
     while (my $m = $machineinfo->next) {
         push @machineinfo, { key => $m->key, value => $m->value };
     }
@@ -56,6 +56,7 @@ while (my $host = $hosts->next) {
     $metadata{hostid} = $host->hostid;
     $metadata{hardware} = $host->hardware;
     $metadata{release} = $host->release;
+    $metadata{updated} = $host->updated;
     $metadata{fingerprint} = $host->fingerprint;
 
     my $object = {
