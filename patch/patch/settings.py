@@ -157,3 +157,5 @@ SOURCE_PACKAGE_DETAIL_URLS = {
     ('ubuntu', 'http://packages.ubuntu.com/%s/%s'),
     ('debian', 'https://packages.debian.org/%s/%s'),
 }
+
+APTGET_COMMAND_STUB = "apt-get --only-upgrade install"

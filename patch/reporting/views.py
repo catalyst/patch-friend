@@ -47,5 +47,6 @@ class AdvisoryDetailView(generic.DetailView):
 
         # have to convert back to dict to make the template work
         context['binary_packages'] = dict(binary_packages)
+        context['aptget_command'] = settings.APTGET_COMMAND_STUB
 
         return context
