@@ -13,7 +13,7 @@ class AdvisoryIndexView(SearchableListMixin, generic.ListView):
     model = Advisory
     template_name = "reporting/advisory_list.html"
     paginate_by = 25
-    search_fields = ['upstream_id', 'short_description', 'description', 'search_packages', 'source']
+    search_fields = ['upstream_id', 'short_description', 'description', 'search_keywords', 'source']
 
     def get_paginate_by(self, queryset):
         return self.request.GET.get('paginate_by', self.paginate_by)

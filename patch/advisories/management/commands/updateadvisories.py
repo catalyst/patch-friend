@@ -156,7 +156,7 @@ class DebianFeed(object):
         print "  Found %i new DSAs to download" % len(new_advisories)
 
         for advisory in new_advisories:
-            print "    downloading %s..." % advisory,
+            print "    Downloading %s..." % advisory,
             search_packages = set()
             description = svn_advisories[advisory]['description']
             description = description[0].upper() + description[1:]
@@ -196,7 +196,7 @@ class DebianFeed(object):
                                     search_packages.add(snapshot_binary['name'])
                                     search_packages.add(snapshot_binary['version'])
 
-                        db_advisory.search_packages = " ".join(search_packages)
+                        db_advisory.search_keywords = " ".join(search_packages)
                         db_advisory.save()
 
                         print "OK"
@@ -265,10 +265,10 @@ class UbuntuFeed(object):
         json_advisories = self._parse_json_advisories()
         new_advisories = set(json_advisories) - set(['-'.join(advisory.upstream_id.split('-')[1:]) for advisory in Advisory.objects.filter(source='ubuntu')])
 
-        print "  %i new USNs to process" % len(new_advisories)
+        print "  Found %i new USNs to process" % len(new_advisories)
 
         for advisory in new_advisories:
-            print "    processing USN %s..." % advisory,
+            print "    Processing USN %s..." % advisory,
 
             search_packages = set()
 
@@ -300,12 +300,12 @@ class UbuntuFeed(object):
                             db_binpackage.save()
                             search_packages.add(binary_package_name)
                             search_packages.add(binary_package_version)
+                db_advisory.search_keywords = " ".join(search_packages)
+                db_advisory.save()
             except:
                 print "Error"
                 raise
             else:
-                db_advisory.search_packages = " ".join(search_packages)
-                db_advisory.save()
                 print "OK"
 
 class Command(BaseCommand):
