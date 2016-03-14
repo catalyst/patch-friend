@@ -91,5 +91,25 @@
                 </table>
             </td>
         </tr>
+        <tr class="separate-from-above">
+            <th>Update commands</th>
+            <td>
+                <table class="table package-table">
+		    <thead>
+			<tr>
+			    <th class="package-name">Package</th><th>Safe version</th>
+			</tr>
+		    </thead>
+		    {% for release_name, release in binary_packages.items %}
+		    <tbody>
+		    <tr>
+			<td class="package-name">{{ release_name|advisory_release }}</td>
+			<td>{{ aptget_command }} {% for key, package_data in release.items %} {{ package_data.package.package }} {% endfor %}</td>
+		    </tr>
+		    </tbody>
+		    {% endfor %}
+                </table>
+            </td>
+        </tr>
     </table>
 {% endblock %}
