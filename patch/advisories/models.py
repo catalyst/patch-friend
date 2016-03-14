@@ -16,7 +16,7 @@ class Advisory(models.Model):
     source = models.CharField(choices=settings.ADVISORY_SOURCES, max_length=32, help_text="Vendor source of the advisory")
     severity = models.IntegerField(blank=True, choices=settings.ADVISORY_SEVERITIES, default=0, help_text="Local severity of the advisory, once it has been reviewed")
     reviewed_by = models.ForeignKey(User, blank=True, null=True, help_text="Person who locally reviewed the advisory for its overall severity (or None if the severity was determined automatically)")
-    search_packages = models.TextField(blank=True, null=True, help_text="Space separated list of source and binary packages used to speed up search")
+    search_keywords = models.TextField(blank=True, null=True, help_text="Space separated list of keywords used to speed up search")
 
     class Meta:
         verbose_name_plural = "advisories"

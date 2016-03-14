@@ -29,7 +29,7 @@
             <th>Releases</th>
             <td>
                 {% for release in release_list %}
-                    {{ release.grouper|title }}{% if not forloop.last %}, {% endif %}
+                    {{ release.grouper }}{% if not forloop.last %}, {% endif %}
                 {% endfor %}
             </td>
         </tr>

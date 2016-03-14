@@ -51,12 +51,12 @@
                     <td>{{ advisory.short_description }}</td>
                     <td>
                         {% for release in release_list %}
-                            {{ release.grouper|title }}{% if not forloop.last %}, {% endif %}
+                            {{ release.grouper }}{% if not forloop.last %}, {% endif %}
                         {% endfor %}
                     </td>
                     <td>
                         {% for package in source_package_list %}
-                            {{ package.grouper }}{% if not forloop.last %}, {% endif %}
+                            <span class="package-name">{{ package.grouper }}</span>{% if not forloop.last %}, {% endif %}
                         {% endfor %}
                     </td>
                     <td class="{{ advisory.severity|advisory_severity_class }}">{{ advisory.severity|advisory_severity }}</td>
