@@ -7,3 +7,4 @@ python-debian==0.1.23
 pytz==2015.7
 requests==2.9.1
 svn==0.3.36
+psycopg2=2.6.1
