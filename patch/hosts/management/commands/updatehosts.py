@@ -98,8 +98,8 @@ class Command(BaseCommand):
             db_host.source = 'hostinfo'
             db_host.save()
 
-            all_hostinfo_packages = set([package['name'] for package in host_data['packages']])
-            all_database_packages = set([package.name for packages in db_host.package_set.all()])
+            Package.objects.filter(host__pk=db_host.pk).delete()
+            pkgs = []
 
             for package in host_data['packages']:
                 if package['status'] == 'ii':
@@ -107,8 +107,9 @@ class Command(BaseCommand):
                 else:
                     status = 'absent'
 
-                db_package, created = db_host.package_set.update_or_create(defaults={"version": package['version'], "status": status}, name=package['name'])
+                pkgs.append(Package(name=package['name'], version=package['version'], status=status, host=db_host))
 
+            Package.objects.bulk_create(pkgs)
             print "Done"
 
 
