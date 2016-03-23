@@ -1,7 +1,8 @@
 {% extends 'reporting/base.html' %}
 
-{% load bootstrap3 %}
 {% load advisory_fields %}
+{% load bootstrap3 %}
+{% load staticfiles %}
 
 {% block title %}{{ object.source|advisory_source }} advisory {{ object.upstream_id }}{% endblock %}
 
@@ -17,7 +18,7 @@
             <th>&nbsp;</th><td><a href="{% url 'advisory_list' %}">← Return to newest advisories</a></td>
         </tr>
         <tr class="separate-from-above">
-            <th>Source</th><td>{{ object.source|advisory_source }}</td>
+            <th>Source</th><td><img class="distro-icon" src="{% static 'reporting/icons/'|add:object.source|add:'.png' %}" alt="{{ object.source|advisory_source }}">{{ object.source|advisory_source }}</td>
         </tr>
         <tr>
             <th>Upstream ID</th><td><a href="{{ object.source_url }}">{{ object.upstream_id }}</a></td>
@@ -96,15 +97,15 @@
             <td>
                 <table class="table package-table">
 		    <thead>
-			<tr>
-			    <th class="package-name">Package</th><th>Safe version</th>
+			<tr class="release-name-first">
+			    <th class="package-name">Release</th><th>Command</th>
 			</tr>
 		    </thead>
 		    {% for release_name, release in binary_packages.items %}
 		    <tbody>
 		    <tr>
 			<td class="package-name">{{ release_name|advisory_release }}</td>
-			<td>{{ aptget_command }} {% for key, package_data in release.items %} {{ package_data.package.package }} {% endfor %}</td>
+			<td><div class="well command">{{ aptget_command }} {% for key, package_data in release.items %} {{ package_data.package.package }} {% endfor %}</div></td>
 		    </tr>
 		    </tbody>
 		    {% endfor %}

@@ -23,22 +23,22 @@ class HostinfoClient(object):
         self.hostinfo_base_url = hostinfo_base_url or 'http://hostinfo/'
 
     def all_hosts_and_packages(self):
-        return json.loads(requests.get("%s/cgi-bin/hosts.pl" % self.hostinfo_base_url).content).get('hosts', [])
+        return json.loads(requests.get("%s/cgi-bin/hosts-and-packages.pl" % self.hostinfo_base_url).content)
 
 class Command(BaseCommand):
     help = 'Update all sources of hosts and packages'
 
-    def _parse_hostinfo_json(self):
-        # XXX hard coded dev path
-
-        with open("/home/fincham/Documents/Development/catalyst/patch-friend/packagecache.json") as hostinfo_data:
-            return json.loads(hostinfo_data.read())
-
     @transaction.atomic
     def _update_hostinfo_hosts(self):
 
+        default_customer, created = Customer.objects.get_or_create(name='Catalyst')
+        if created:
+            default_customer.save()
+
+        print "  Wrangling all host data (this will take a minute or two)... ",
+
         all_database_hosts = Host.objects.filter(source='hostinfo')
-        all_hostinfo_hosts = self._parse_hostinfo_json()
+        all_hostinfo_hosts = self.hostinfo_client.all_hosts_and_packages()
 
         all_database_fingerprints = set([host.hostinfo_fingerprint for host in all_database_hosts])
         all_hostinfo_fingerprints = set([host['metadata']['fingerprint'] for hostname, host in all_hostinfo_hosts.iteritems()])
@@ -46,11 +46,13 @@ class Command(BaseCommand):
         new_hosts = all_hostinfo_fingerprints - all_database_fingerprints
         hosts_to_remove = all_database_fingerprints - all_hostinfo_fingerprints
 
+        print "OK"
+
         print "  %i hosts found (%i new)" % (len(all_hostinfo_fingerprints), len(new_hosts))
 
         for hostname, host_data in all_hostinfo_hosts.iteritems():
             print "      updating %s..." % hostname,
-            db_host, db_host_created = Host.objects.get_or_create(hostinfo_fingerprint=host_data['metadata']['fingerprint'], defaults={'hostinfo_id': host_data['metadata']['hostid'], 'customer': Customer(1), 'name': hostname})
+            db_host, db_host_created = Host.objects.get_or_create(hostinfo_fingerprint=host_data['metadata']['fingerprint'], defaults={'hostinfo_id': host_data['metadata']['hostid'], 'customer': default_customer, 'name': hostname})
 
             if db_host_created:
                 tags = []
@@ -72,7 +74,7 @@ class Command(BaseCommand):
                     db_customer, db_customer_created = Customer.objects.get_or_create(name=customer)
                     db_host.customer = db_customer
                 else:
-                    db_customer = Customer(1)
+                    db_customer = default_customer
 
                 if tags:
                     for tag in tags:
@@ -107,7 +109,14 @@ class Command(BaseCommand):
                 else:
                     status = 'absent'
 
-                pkgs.append(Package(name=package['name'], version=package['version'], status=status, host=db_host))
+                try:
+                    package_architecture = package['name'].strip().split(':')[1]
+                    package_name = package['name'].strip().split(':')[0]
+                except:
+                    package_architecture = architecture
+                    package_name = package['name']
+
+                pkgs.append(Package(name=package_name, version=package['version'], status=status, host=db_host, architecture=package_architecture))
 
             Package.objects.bulk_create(pkgs)
             print "Done"

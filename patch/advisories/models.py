@@ -3,6 +3,8 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
 
+import hosts.models
+
 class Advisory(models.Model):
     """
     "Lowest common denominator" across all vendor advisories.
@@ -34,6 +36,15 @@ class Advisory(models.Model):
 
     def source_url(self):
         return dict(settings.SOURCE_ADVISORY_DETAIL_URLS)[self.source] % self.upstream_id
+
+    def affected_hosts(self):
+        return hosts.models.Host.objects.filter(
+            release__in=[package.release for package in self.binarypackage_set.order_by('release').distinct('release')],
+            package__name__in=[package.package for package in self.binarypackage_set.order_by('package').distinct('package')]
+        ).distinct()
+
+    # def resolved_hosts(self):
+    #    return self.affected_hosts().filter(package__version__gte=
 
 class SourcePackage(models.Model):
     """

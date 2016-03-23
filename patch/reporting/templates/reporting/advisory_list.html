@@ -3,6 +3,7 @@
 {% load humanize %}
 {% load bootstrap3 %}
 {% load advisory_fields %}
+{% load staticfiles %}
 
 {% block title %}Advisory list{% endblock %}
 
@@ -39,15 +40,16 @@
                 <th>Local severity</th>
                 <th>Reviewed by</th>
                 <th>Issued</th>
+                <th>Affected hosts</th>
             </tr>
         </thead>
         <tbody>
             {% for advisory in object_list %}
-                {% regroup advisory.sourcepackage_set.all by release as release_list %}
+                {% regroup advisory.sourcepackage_set.all|dictsort:'release' by release as release_list %}
                 {% regroup advisory.sourcepackage_set.all by package as source_package_list %}
 
                 <tr>
-                    <td class="advisory-upstream-id"><a href="{{ advisory.get_absolute_url }}?{{ pagination_extra }}">{{ advisory.upstream_id }}</a></td>
+                    <td class="advisory-upstream-id"><img class="distro-icon" src="{% static 'reporting/icons/'|add:advisory.source|add:'.png' %}" alt="{{ advisory.source|advisory_source }}"><a href="{{ advisory.get_absolute_url }}?{{ pagination_extra }}">{{ advisory.upstream_id }}</a></td>
                     <td>{{ advisory.short_description }}</td>
                     <td>
                         {% for release in release_list %}
@@ -62,6 +64,7 @@
                     <td class="{{ advisory.severity|advisory_severity_class }}">{{ advisory.severity|advisory_severity }}</td>
                     <td>{{ advisory.reviewed_by|ignore_none }}</td>
                     <td class="advisory-issued">{{ advisory.issued }}</td>
+                    <td>{{ advisory.affected_hosts.count }}</td>
                 </tr>
             {% endfor %}
         </tbody>

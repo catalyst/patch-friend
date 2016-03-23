@@ -60,6 +60,14 @@ class HostImportedAttribute(models.Model):
 
 # Package models
 
+class DebversionField(models.Field):
+    """
+    Field type from `postgresql-9.4-debversion' package in Debian.
+    """
+
+    def db_type(self, connection):
+        return 'debversion'
+
 class Package(models.Model):
     """
     Operating system package.
@@ -73,11 +81,11 @@ class Package(models.Model):
     name = models.CharField(max_length=200, help_text="Name of package from the operating system's package manager.")
     host = models.ForeignKey(Host)
     status = models.CharField(choices=STATUSES, max_length=32, help_text="Whether the package is installed.")
-    version = models.CharField(max_length=200, help_text="The package manager's version for this package.")
+    version = DebversionField(max_length=200, help_text="The package manager's version for this package.")
     architecture = models.CharField(max_length=200, help_text="Package architecture, which may differ from the host architecture.")
 
     class Meta:
-        unique_together = (("name", "host"),)
+        unique_together = (("name", "host", "architecture"),)
 
     def __unicode__(self):
         return "%s" % self.name

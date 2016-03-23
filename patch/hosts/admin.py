@@ -34,8 +34,8 @@ class HostSupportedListFilter(admin.SimpleListFilter):
 class PackageInline(admin.StackedInline):
     model = Package
     extra = 0
-    readonly_fields = ['status']
-    fields = ['status']
+    readonly_fields = ['status', 'architecture']
+    fields = ['status', 'architecture']
 
 class HostAdmin(admin.ModelAdmin):
     inlines = [HostImportedAttributeInline, PackageInline]
