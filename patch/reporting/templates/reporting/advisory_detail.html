@@ -84,7 +84,7 @@
                         <tbody>
                             {% for key, package_data in release.items %}
                                 <tr>
-                                    <td class="package-name"><a href="{{ package_data.package.source_url }}">{{ package_data.package.package }}</a></td><td>{{ package_data.package.safe_version }}</td><td>{{ package_data.architectures|join:", " }}</td>
+                                    <td class="package-name"><a href="{{ package_data.package.source_url }}">{{ package_data.package.package }}</a></td><td>{{ package_data.package.safe_version }}</td><td>{{ package_data.architectures|sortedlist }}</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -113,4 +113,6 @@
             </td>
         </tr>
     </table>
+
+    {{ advisory.unresolved_hosts }}
 {% endblock %}

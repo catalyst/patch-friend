@@ -2,8 +2,17 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
+from django.db.models import Q
 
 import hosts.models
+
+class DebversionField(models.Field):
+    """
+    Field type from `postgresql-9.4-debversion' package in Debian.
+    """
+
+    def db_type(self, connection):
+        return 'debversion'
 
 class Advisory(models.Model):
     """
@@ -27,6 +36,19 @@ class Advisory(models.Model):
     def __unicode__(self):
         return self.upstream_id
 
+    def _unresolved_hosts_query(self):
+        queries = None
+
+        for package in self.binarypackage_set.all():
+            query = Q(package__name=package.package, package__version__lt=package.safe_version, package__host__release=package.release, package__architecture=package.architecture)
+
+            if queries is None:
+                queries = query
+            else:
+                queries = queries | query
+
+        return queries
+
     def get_absolute_url(self):
         from django.core.urlresolvers import reverse
         return reverse('advisory_detail', args=(self.upstream_id, ))
@@ -40,11 +62,21 @@ class Advisory(models.Model):
     def affected_hosts(self):
         return hosts.models.Host.objects.filter(
             release__in=[package.release for package in self.binarypackage_set.order_by('release').distinct('release')],
-            package__name__in=[package.package for package in self.binarypackage_set.order_by('package').distinct('package')]
+            package__name__in=[package.package for package in self.binarypackage_set.order_by('package').distinct('package')],
+            package__architecture__in=[package.architecture for package in self.binarypackage_set.order_by('architecture').distinct('architecture')],
         ).distinct()
 
-    # def resolved_hosts(self):
-    #    return self.affected_hosts().filter(package__version__gte=
+    def resolved_hosts(self):
+        try:
+            return self.affected_hosts().exclude(self._unresolved_hosts_query())
+        except:
+            return None
+
+    def unresolved_hosts(self):
+        try:
+            return self.affected_hosts().filter(self._unresolved_hosts_query())
+        except:
+            return None
 
 class SourcePackage(models.Model):
     """
@@ -56,7 +88,7 @@ class SourcePackage(models.Model):
     advisory = models.ForeignKey(Advisory, help_text="Advisory to which this package belongs")
     package = models.CharField(max_length=200, help_text="Name of source package")
     release = models.CharField(choices=settings.RELEASES,max_length=32, help_text="Specific release to which this package belongs")
-    safe_version = models.CharField(max_length=200, help_text="Package version that is to be considered 'safe' at the issue of this advisory")
+    safe_version = DebversionField(max_length=200, help_text="Package version that is to be considered 'safe' at the issue of this advisory")
 
     class Meta:
         verbose_name_plural = "source packages"
@@ -87,7 +119,7 @@ class BinaryPackage(models.Model):
     source_package = models.ForeignKey(SourcePackage, blank=True, null=True, help_text="If set, the source package from which this binary package was generated")
     package = models.CharField(max_length=200, help_text="Name of binary package")
     release = models.CharField(choices=settings.RELEASES,max_length=32, help_text="Specific release to which this package belongs")
-    safe_version = models.CharField(max_length=200, null=True, help_text="Package version that is to be considered 'safe' at the issue of this advisory")
+    safe_version = DebversionField(max_length=200, null=True, help_text="Package version that is to be considered 'safe' at the issue of this advisory")
     architecture = models.CharField(max_length=200, null=True, help_text="Machine architecture")
 
     class Meta:

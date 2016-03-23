@@ -42,6 +42,10 @@ def ignore_none(value):
 
     return value
 
+@register.filter
+def sortedlist(value):
+    return ", ".join(sorted(value))
+
 @register.filter(needs_autoescape=True)
 @stringfilter
 def paragraphbreaks(value, autoescape=True):
