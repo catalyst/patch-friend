@@ -35,7 +35,7 @@ class Command(BaseCommand):
         if created:
             default_customer.save()
 
-        print "  Wrangling all host data (this will take a minute or two)... ",
+        self.stdout.write("  Wrangling all host data (this will take a minute or two)... ", ending='')
 
         all_database_hosts = Host.objects.filter(source='hostinfo')
         all_hostinfo_hosts = self.hostinfo_client.all_hosts_and_packages()
@@ -46,12 +46,12 @@ class Command(BaseCommand):
         new_hosts = all_hostinfo_fingerprints - all_database_fingerprints
         hosts_to_remove = all_database_fingerprints - all_hostinfo_fingerprints
 
-        print "OK"
+        self.stdout.write("OK")
 
-        print "  %i hosts found (%i new)" % (len(all_hostinfo_fingerprints), len(new_hosts))
+        self.stdout.write("  %i hosts found (%i new)" % (len(all_hostinfo_fingerprints), len(new_hosts)))
 
         for hostname, host_data in all_hostinfo_hosts.iteritems():
-            print "      updating %s..." % hostname,
+            self.stdout.write("      updating %s..." % hostname, ending='')
             db_host, db_host_created = Host.objects.get_or_create(hostinfo_fingerprint=host_data['metadata']['fingerprint'], defaults={'hostinfo_id': host_data['metadata']['hostid'], 'customer': default_customer, 'name': hostname})
 
             if db_host_created:
@@ -119,17 +119,17 @@ class Command(BaseCommand):
                 pkgs.append(Package(name=package_name, version=package['version'], status=status, host=db_host, architecture=package_architecture))
 
             Package.objects.bulk_create(pkgs)
-            print "Done"
+            self.stdout.write("Done")
 
 
-        print "  %i removed hosts" % len(hosts_to_remove)
+        self.stdout.write("  %i removed hosts" % len(hosts_to_remove))
 
         for fingerprint in hosts_to_remove:
             db_host = Host.objects.get(hostinfo_fingerprint=fingerprint)
-            print "      updating %s..." % db_host.name,
+            self.stdout.write("      updating %s..." % db_host.name, ending='')
             db_host.status = 'absent'
             db_host.save()
-            print "Done"
+            self.stdout.write("Done")
 
 
     def handle(self, *args, **options):
@@ -145,7 +145,7 @@ class Command(BaseCommand):
         with transaction.atomic():
             host_statuses = Paginator(HostDiscoveryRun.objects.filter(source='hostinfo').latest('created').hoststatus_set.filter(status='present'), 20)
             for page in host_statuses.page_range:
-                print "    interrogating hostinfo for 20 hosts..."
+                self.stdout.write("    interrogating hostinfo for 20 hosts...")
 
                 host_ids = [host_status.host.hostinfo_id for host_status in host_statuses.page(page)]
 
