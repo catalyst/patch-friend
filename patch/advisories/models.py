@@ -64,6 +64,7 @@ class Advisory(models.Model):
             release__in=[package.release for package in self.binarypackage_set.order_by('release').distinct('release')],
             package__name__in=[package.package for package in self.binarypackage_set.order_by('package').distinct('package')],
             package__architecture__in=[package.architecture for package in self.binarypackage_set.order_by('architecture').distinct('architecture')],
+            package__status='present',
         ).distinct()
 
     def resolved_hosts(self):
