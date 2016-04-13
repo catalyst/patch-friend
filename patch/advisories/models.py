@@ -97,10 +97,9 @@ class Advisory(models.Model):
             return None
 
     def unresolved_hosts(self):
-        unresolved = self.affected_hosts().filter(self._unresolved_hosts_query())
-        if unresolved is not None:
-            return unresolved
-        else:
+        try:
+            return self.affected_hosts().filter(self._unresolved_hosts_query())
+        except:
             return None
 
 class SourcePackage(models.Model):
