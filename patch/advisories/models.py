@@ -100,7 +100,7 @@ class Advisory(models.Model):
         affected = float(len(self.affected_hosts()))
         resolved = float(len(self.resolved_hosts()))
 
-        return '%.02f' % (resolved/affected*100)
+        return int(round(resolved/affected*100))
 
     def unresolved_hosts(self):
         try:
@@ -112,7 +112,7 @@ class Advisory(models.Model):
         affected = float(len(self.affected_hosts()))
         unresolved = float(len(self.unresolved_hosts()))
 
-        return '%.02f' % (unresolved/affected*100)
+        return int(round(unresolved/affected*100))
 
 class SourcePackage(models.Model):
     """
