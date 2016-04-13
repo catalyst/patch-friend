@@ -67,7 +67,7 @@
                     <td>{{ advisory.reviewed_by|ignore_none }}</td>
                     <td class="advisory-issued">{{ advisory.issued }}</td>
                     <td>{{ advisory.affected_hosts.count }}</td>
-                    <td></td>
+                    <td>{{ advisory.resolved_hosts.count }}</td>
                     <td>{{ advisory.unresolved_hosts.count }}</td>
 
                 </tr>

@@ -40,7 +40,7 @@ class Advisory(models.Model):
         queries = None
 
         for package in self.binarypackage_set.all():
-            query = Q(package__name=package.package, package__version__lt=package.safe_version, package__host__release=package.release, package__architecture=package.architecture)
+            query = Q(package__name=package.package, package__version__lt=package.safe_version)
 
             if queries is None:
                 queries = query
@@ -59,24 +59,48 @@ class Advisory(models.Model):
     def source_url(self):
         return dict(settings.SOURCE_ADVISORY_DETAIL_URLS)[self.source] % self.upstream_id
 
+    '''
+    XXX: explanation of categorisation method?
+    '''
     def affected_hosts(self):
-        return hosts.models.Host.objects.filter(
-            release__in=[package.release for package in self.binarypackage_set.order_by('release').distinct('release')],
-            package__name__in=[package.package for package in self.binarypackage_set.order_by('package').distinct('package')],
-            package__architecture__in=[package.architecture for package in self.binarypackage_set.order_by('architecture').distinct('architecture')],
-            package__status='present',
-        ).distinct()
+        queries = None
+
+        for package in self.binarypackage_set.all():
+            if package.architecture == 'any':
+                query = Q(package__name=package.package,
+                        package__host__release=package.release,
+                        package__status='present',
+                        )
+            else:
+                query = Q(package__name=package.package,
+                        package__host__release=package.release,
+                        package__architecture=package.architecture,
+                        package__status='present',
+                        )
+
+            if queries is None:
+                queries = query
+            else:
+                queries = queries | query
+
+        if queries is None:
+            return None
+
+        return hosts.models.Host.objects.filter(queries, status='present').distinct()
 
     def resolved_hosts(self):
-        try:
-            return self.affected_hosts().exclude(self._unresolved_hosts_query())
-        except:
+        unresolved = self.unresolved_hosts()
+        if unresolved is not None:
+            unresolved_ids = [host.id for host in self.unresolved_hosts()]
+            return self.affected_hosts().exclude(id__in=unresolved_ids)
+        else:
             return None
 
     def unresolved_hosts(self):
-        try:
-            return self.affected_hosts().filter(self._unresolved_hosts_query())
-        except:
+        unresolved = self.affected_hosts().filter(self._unresolved_hosts_query())
+        if unresolved is not None:
+            return unresolved
+        else:
             return None
 
 class SourcePackage(models.Model):
