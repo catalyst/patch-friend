@@ -96,11 +96,23 @@ class Advisory(models.Model):
         else:
             return None
 
+    def resolved_hosts_percentage(self):
+        affected = float(len(self.affected_hosts()))
+        resolved = float(len(self.resolved_hosts()))
+
+        return '%.02f' % (resolved/affected*100)
+
     def unresolved_hosts(self):
         try:
             return self.affected_hosts().filter(self._unresolved_hosts_query())
         except:
             return None
+
+    def unresolved_hosts_percentage(self):
+        affected = float(len(self.affected_hosts()))
+        unresolved = float(len(self.unresolved_hosts()))
+
+        return '%.02f' % (unresolved/affected*100)
 
 class SourcePackage(models.Model):
     """
