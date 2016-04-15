@@ -89,7 +89,7 @@ class Advisory(models.Model):
     def resolved_hosts(self):
         unresolved = self.unresolved_hosts()
         if unresolved is not None:
-            unresolved_ids = [host.id for host in self.unresolved_hosts()]
+            unresolved_ids = [host.id for host in unresolved]
             return self.affected_hosts().exclude(id__in=unresolved_ids)
         else:
             return None
