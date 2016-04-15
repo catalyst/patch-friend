@@ -66,7 +66,7 @@ class Advisory(models.Model):
         queries = None
 
         for package in self.binarypackage_set.all():
-            if package.architecture == 'any':
+            if package.architecture == 'all':
                 query = Q(package__name=package.package,
                         package__host__release=package.release,
                         package__status='present',
