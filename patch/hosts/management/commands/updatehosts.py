@@ -94,7 +94,6 @@ class Command(BaseCommand):
             except:
                 architecture = ''
 
-            db_host.status = 'present'
             db_host.release = release
             db_host.architecture = architecture
             db_host.source = 'hostinfo'
@@ -104,10 +103,9 @@ class Command(BaseCommand):
             pkgs = []
 
             for package in host_data['packages']:
-                if package['status'] == 'ii':
-                    status = 'present'
-                else:
-                    status = 'absent'
+                # only 'ii' packages are imported
+                if package['status'] != 'ii':
+                    continue
 
                 try:
                     package_architecture = package['name'].strip().split(':')[1]
@@ -116,47 +114,16 @@ class Command(BaseCommand):
                     package_architecture = architecture
                     package_name = package['name']
 
-                pkgs.append(Package(name=package_name, version=package['version'], status=status, host=db_host, architecture=package_architecture))
+                pkgs.append(Package(name=package_name, version=package['version'], host=db_host, architecture=package_architecture))
 
             Package.objects.bulk_create(pkgs)
             self.stdout.write("Done")
 
-
         self.stdout.write("  %i removed hosts" % len(hosts_to_remove))
-
-        for fingerprint in hosts_to_remove:
-            db_host = Host.objects.get(hostinfo_fingerprint=fingerprint)
-            self.stdout.write("      updating %s..." % db_host.name, ending='')
-            db_host.status = 'absent'
-            db_host.save()
-            self.stdout.write("Done")
-
+        Host.objects.filter(hostinfo_fingerprint__in=hosts_to_remove).delete()
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.MIGRATE_HEADING("Updating hosts from hostinfo..."))
         self.hostinfo_client = HostinfoClient()
 
         self._update_hostinfo_hosts()
-
-        return
-
-        self.stdout.write(self.style.MIGRATE_HEADING("Updating packages for hosts..."))
-
-        with transaction.atomic():
-            host_statuses = Paginator(HostDiscoveryRun.objects.filter(source='hostinfo').latest('created').hoststatus_set.filter(status='present'), 20)
-            for page in host_statuses.page_range:
-                self.stdout.write("    interrogating hostinfo for 20 hosts...")
-
-                host_ids = [host_status.host.hostinfo_id for host_status in host_statuses.page(page)]
-
-                for host_id in host_ids:
-                    host_package_data = self.hostinfo_client.packages_for_host(host_id)
-
-# for host_id, packages in host_package_data.iteritems():
-#     host = Host.objects.get(hostinfo_id=host_id)
-#     print "      updating %s..." % host.name,
-
-#     self._update_packages_for_host(host, packages)
-#     print "Done"
-
-

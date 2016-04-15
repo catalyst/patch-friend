@@ -69,13 +69,11 @@ class Advisory(models.Model):
             if package.architecture == 'all':
                 query = Q(package__name=package.package,
                         package__host__release=package.release,
-                        package__status='present',
                         )
             else:
                 query = Q(package__name=package.package,
                         package__host__release=package.release,
                         package__architecture=package.architecture,
-                        package__status='present',
                         )
 
             if queries is None:
@@ -86,7 +84,7 @@ class Advisory(models.Model):
         if queries is None:
             return None
 
-        return hosts.models.Host.objects.filter(queries, status='present').distinct()
+        return hosts.models.Host.objects.filter(queries).distinct()
 
     def resolved_hosts(self):
         unresolved = self.unresolved_hosts()

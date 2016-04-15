@@ -34,14 +34,14 @@ class HostSupportedListFilter(admin.SimpleListFilter):
 class PackageInline(admin.StackedInline):
     model = Package
     extra = 0
-    readonly_fields = ['status', 'architecture']
-    fields = ['status', 'architecture']
+    readonly_fields = ['architecture']
+    fields = ['architecture']
 
 class HostAdmin(admin.ModelAdmin):
     inlines = [HostImportedAttributeInline, PackageInline]
     search_fields = ['name']
     list_display = ['name', 'release', 'hostinfo_fingerprint', 'package_count']
-    list_filter = ['status', 'release', 'architecture', HostSupportedListFilter]
+    list_filter = ['release', 'architecture', HostSupportedListFilter]
 
     def get_queryset(self, request):
         return Host.objects.annotate(package_count=Count('package'))
@@ -52,7 +52,7 @@ class HostAdmin(admin.ModelAdmin):
 # Package admin
 
 class PackageAdmin(admin.ModelAdmin):
-    list_display = ['name', 'host', 'status']
+    list_display = ['name', 'host']
     search_fields = ['name']
 
 # Tag admin
