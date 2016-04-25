@@ -122,6 +122,10 @@ class Command(BaseCommand):
         self.stdout.write("  %i removed hosts" % len(hosts_to_remove))
         Host.objects.filter(hostinfo_fingerprint__in=hosts_to_remove).delete()
 
+        # entries in advisories_cache are only valid for the hostinfo run they were generated against
+        self.stdout.write("  clearing advisories cache")
+        cache.clear()
+
     def handle(self, *args, **options):
         self.stdout.write(self.style.MIGRATE_HEADING("Updating hosts from hostinfo..."))
         self.hostinfo_client = HostinfoClient()

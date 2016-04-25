@@ -3,8 +3,27 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
 from django.db.models import Q
+from django.core.cache import cache
 
 import hosts.models
+
+def advisory_cache(func):
+    def func_wrapper(self):
+        cache_key = settings.ADVISORYCACHE_KEYS[func.func_name] % self
+        cache_item = cache.get(cache_key)
+        '''
+        according to the docs, storing None is not a good idea, however, we need
+        to return None. values of None are stored in the cache table as the value
+        of settings.ADVISORYCACHE_EMPTYRESULT
+        '''
+        if cache_item is not None:
+            return cache_item if cache_item != settings.ADVISORYCACHE_EMPTYRESULT else None
+
+        ret = func(self)
+        cache.set(cache_key, ret or settings.ADVISORYCACHE_EMPTYRESULT, None)
+        return ret
+
+    return func_wrapper
 
 class DebversionField(models.Field):
     """
@@ -62,6 +81,7 @@ class Advisory(models.Model):
     '''
     XXX: explanation of categorisation method?
     '''
+    @advisory_cache
     def affected_hosts(self):
         queries = None
 
@@ -86,6 +106,7 @@ class Advisory(models.Model):
 
         return hosts.models.Host.objects.filter(queries).distinct()
 
+    @advisory_cache
     def resolved_hosts(self):
         unresolved = self.unresolved_hosts()
         if unresolved is not None:
@@ -100,6 +121,7 @@ class Advisory(models.Model):
 
         return int(round(resolved/affected*100))
 
+    @advisory_cache
     def unresolved_hosts(self):
         try:
             return self.affected_hosts().filter(self._unresolved_hosts_query())

@@ -91,6 +91,12 @@ DATABASES = {
     }
 }
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'advisories_cache',
+    }
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.8/topics/i18n/
@@ -159,3 +165,8 @@ SOURCE_PACKAGE_DETAIL_URLS = {
 }
 
 APTGET_COMMAND_STUB = 'sudo apt-get --only-upgrade install'
+
+ADVISORYCACHE_EMPTYRESULT = 0
+ADVISORYCACHE_KEYS = {'affected_hosts': 'affected_hosts_%s',
+    'resolved_hosts': 'resolved_hosts_%s',
+    'unresolved_hosts': 'unresolved_hosts_%s'}
