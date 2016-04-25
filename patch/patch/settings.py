@@ -166,7 +166,7 @@ SOURCE_PACKAGE_DETAIL_URLS = {
 
 APTGET_COMMAND_STUB = 'sudo apt-get --only-upgrade install'
 
-ADVISORYCACHE_EMPTYRESULT = 0
+ADVISORYCACHE_EMPTYRESULT = 'empty'
 ADVISORYCACHE_KEYS = {'affected_hosts': 'affected_hosts_%s',
     'resolved_hosts': 'resolved_hosts_%s',
     'unresolved_hosts': 'unresolved_hosts_%s'}
