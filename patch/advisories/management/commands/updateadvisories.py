@@ -44,7 +44,7 @@ class DebianFeed(object):
 
         try:
             os.makedirs(self.cache_location)
-        except:
+        except OSError: # directory already exists
             pass
 
         try:
@@ -225,6 +225,10 @@ class UbuntuFeed(object):
         """
         Download and decompress the latest USN data from Ubuntu.
         """
+        try:
+            os.makedirs(self.cache_location)
+        except OSError: # directory already exists
+            pass
 
         response = requests.get(self.usn_url, stream=True) # the USN list is a bzip'd JSON file of all the current advisories for all supported releases
         bytes_downloaded = 0
