@@ -1,10 +1,10 @@
-import collections
+import collections, csv
 from urllib import urlencode
 
 from django.conf import settings
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.views import generic
-
+from django.http import HttpResponse
 from extra_views import SearchableListMixin
 
 from advisories.models import *
@@ -50,3 +50,17 @@ class AdvisoryDetailView(generic.DetailView):
         context['aptget_command'] = settings.APTGET_COMMAND_STUB
 
         return context
+
+class AdvisoryHostListView(generic.View):
+    http_method_names = ['get']
+
+    def get(self, request, *args, **kwargs):
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="%s.csv"' % kwargs['advisory'].lower()
+        advisory = get_object_or_404(Advisory, upstream_id=kwargs['advisory'])
+        writer = csv.writer(response, quoting=csv.QUOTE_MINIMAL)
+
+        for host in advisory.unresolved_hosts():
+            writer.writerow([host.name, host.release])
+
+        return response
