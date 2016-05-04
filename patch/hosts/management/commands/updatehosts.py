@@ -10,6 +10,7 @@ import json
 
 from django.core.management.base import BaseCommand, CommandError
 from django.core.paginator import Paginator
+from django.core.cache import cache
 from django.db import transaction
 from django.utils import timezone
 
