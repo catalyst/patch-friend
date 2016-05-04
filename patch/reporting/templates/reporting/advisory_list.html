@@ -51,7 +51,7 @@
                 {% regroup advisory.sourcepackage_set.all by package as source_package_list %}
 
                 <tr>
-                    <td class="advisory-upstream-id"><img class="distro-icon" src="{% static 'reporting/icons/'|add:advisory.source|add:'.png' %}" alt="{{ advisory.source|advisory_source }}"><a href="{{ advisory.get_absolute_url }}?{{ pagination_extra }}">{{ advisory.upstream_id }}</a></td>
+                    <td class="advisory-upstream-id"><img class="distro-icon" src="{% static 'reporting/icons/'|add:advisory.source|add:'.png' %}" alt="{{ advisory.source|advisory_source }}"><a href="{{ advisory.get_absolute_url }}">{{ advisory.upstream_id }}</a></td>
                     <td>{{ advisory.short_description }}</td>
                     <td>
                         {% for release in release_list %}
