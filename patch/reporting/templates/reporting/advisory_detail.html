@@ -6,8 +6,6 @@
 
 {% block title %}{{ object.source|advisory_source }} advisory {{ object.upstream_id }}{% endblock %}
 
-{% regroup object.sourcepackage_set.all by release as release_list %}
-
 
 {% block content %}
     {% regroup object.sourcepackage_set.all by release as release_list %}
@@ -116,11 +114,14 @@
             </td>
         </tr>
         <tr>
-            <th>Hosts</th>
-            <td>
+            <th>Affected hosts</th>
+            <td>{% regroup advisory.unresolved_hosts by customer as host_list %}
             <pre>
-            {% for host in advisory.unresolved_hosts %}
+            {% for hosts in host_list %}
+## {{ hosts.grouper }}
+{% for host in hosts.list %}
 {{ host.name }}
+{% endfor %}
             {% endfor %}
             </pre>
             </td>
