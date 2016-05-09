@@ -124,7 +124,7 @@ class Advisory(models.Model):
     @advisory_cache
     def unresolved_hosts(self):
         try:
-            return self.affected_hosts().filter(self._unresolved_hosts_query())
+            return self.affected_hosts().filter(self._unresolved_hosts_query()).order_by('customer')
         except:
             return None
 
