@@ -38,7 +38,6 @@
                 <th>Releases</th>
                 <th>Source packages</th>
                 <th>Local severity</th>
-                <th>Reviewed by</th>
                 <th>Issued</th>
                 <th>Affected hosts</th>
                 <th>Resolved</th>
@@ -64,7 +63,6 @@
                         {% endfor %}
                     </td>
                     <td class="{{ advisory.severity|advisory_severity_class }}">{{ advisory.severity|advisory_severity }}</td>
-                    <td>{{ advisory.reviewed_by|ignore_none }}</td>
                     <td class="advisory-issued">{{ advisory.issued }}</td>
                     <td>{% if advisory.affected_hosts %} {{ advisory.affected_hosts.count }} {% else %} 0 {% endif %}</td>
                     <td>{% if advisory.resolved_hosts %} {{ advisory.resolved_hosts.count }} <small>({{ advisory.resolved_hosts_percentage }}%)</small> {% else %} 0 <small>(0%)</small> {% endif %}</td>
