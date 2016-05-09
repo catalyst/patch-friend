@@ -49,7 +49,7 @@
                 {% regroup advisory.sourcepackage_set.all|dictsort:'release' by release as release_list %}
                 {% regroup advisory.sourcepackage_set.all by package as source_package_list %}
 
-                <tr>
+                <tr class="{% if advisory.affected_hosts.count == 0 %}uninteresting{% endif %} {% if advisory.unresolved_hosts == 0 %}completed{% endif %}">
                     <td class="advisory-upstream-id"><img class="distro-icon" src="{% static 'reporting/icons/'|add:advisory.source|add:'.png' %}" alt="{{ advisory.source|advisory_source }}"><a href="{{ advisory.get_absolute_url }}">{{ advisory.upstream_id }}</a></td>
                     <td>{{ advisory.short_description }}</td>
                     <td>
