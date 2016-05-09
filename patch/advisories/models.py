@@ -104,7 +104,7 @@ class Advisory(models.Model):
         if queries is None:
             return None
 
-        return hosts.models.Host.objects.filter(queries).distinct()
+        return hosts.models.Host.objects.filter(queries).distinct().order_by('customer')
 
     @advisory_cache
     def resolved_hosts(self):
@@ -124,7 +124,7 @@ class Advisory(models.Model):
     @advisory_cache
     def unresolved_hosts(self):
         try:
-            return self.affected_hosts().filter(self._unresolved_hosts_query()).order_by('customer')
+            return self.affected_hosts().filter(self._unresolved_hosts_query())
         except:
             return None
 
