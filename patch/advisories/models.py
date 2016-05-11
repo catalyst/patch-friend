@@ -5,22 +5,18 @@ from django.utils import timezone
 from django.db.models import Q
 from django.core.cache import cache
 
-import hosts.models
+from hosts.models import Host
 
 def advisory_cache(func):
     def func_wrapper(self):
         cache_key = settings.ADVISORYCACHE_KEYS[func.func_name] % self
         cache_item = cache.get(cache_key)
-        '''
-        according to the docs, storing None is not a good idea, however, we need
-        to return None. values of None are stored in the cache table as the value
-        of settings.ADVISORYCACHE_EMPTYRESULT
-        '''
+
         if cache_item is not None:
-            return cache_item if cache_item != settings.ADVISORYCACHE_EMPTYRESULT else None
+            return cache_item
 
         ret = func(self)
-        cache.set(cache_key, ret or settings.ADVISORYCACHE_EMPTYRESULT, None)
+        cache.set(cache_key, ret, None)
         return ret
 
     return func_wrapper
@@ -102,9 +98,9 @@ class Advisory(models.Model):
                 queries = queries | query
 
         if queries is None:
-            return None
+            return Host.objects.none()
 
-        return hosts.models.Host.objects.filter(queries).distinct().order_by('customer')
+        return Host.objects.filter(queries).distinct().order_by('customer')
 
     @advisory_cache
     def resolved_hosts(self):
@@ -113,7 +109,7 @@ class Advisory(models.Model):
             unresolved_ids = [host.id for host in unresolved]
             return self.affected_hosts().exclude(id__in=unresolved_ids)
         else:
-            return None
+            return Host.objects.none()
 
     def resolved_hosts_percentage(self):
         affected = float(len(self.affected_hosts()))
@@ -126,7 +122,7 @@ class Advisory(models.Model):
         try:
             return self.affected_hosts().filter(self._unresolved_hosts_query())
         except:
-            return None
+            return Host.objects.none()
 
     def unresolved_hosts_percentage(self):
         affected = float(len(self.affected_hosts()))
