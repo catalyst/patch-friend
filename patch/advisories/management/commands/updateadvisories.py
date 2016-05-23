@@ -299,6 +299,8 @@ class UbuntuFeed(object):
                             if not package_filename.endswith('.deb'):
                                 continue
                             binary_package_name = package_filename.split('_')[0]
+                            if not binary_package_name in release_data['binaries'].keys():
+                                continue
                             binary_package_version = package_filename.split('_')[1]
                             db_binpackage = BinaryPackage(advisory=db_advisory, package=binary_package_name, release=release, safe_version=binary_package_version, architecture=architecture)
                             db_binpackage.save()
