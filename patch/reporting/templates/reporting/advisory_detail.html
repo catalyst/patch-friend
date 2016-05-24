@@ -113,15 +113,18 @@
         <tr>
             <th>Remaining hosts</th>
             <td><a href="{% url 'advisory_hostlist' advisory.upstream_id %}">Export CSV...</a></td>
-        </tr>{% regroup advisory.unresolved_hosts by customer as host_list %}
-            <pre>
-            {% for hosts in host_list %}
+        </tr>
+        <tr>
+            <td>
+                {% regroup advisory.unresolved_hosts by customer as host_list %}
+                    <pre>
+{% for hosts in host_list %}
 ## {{ hosts.grouper }}
 {% for host in hosts.list %}
 {{ host.name }}
 {% endfor %}
-            {% endfor %}
-            </pre>
+{% endfor %}
+                    </pre>
             </td>
         </tr>
     </table>
