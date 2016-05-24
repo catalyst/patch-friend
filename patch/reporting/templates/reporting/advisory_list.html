@@ -39,8 +39,7 @@
                 <th>Source packages</th>
                 <th>Severity</th>
                 <th>Issued</th>
-                <th>Affected</th>
-                <th>Remaining</th>
+                <th>Impact</th>
                 <th>Progress</th>
             </tr>
         </thead>
@@ -64,8 +63,9 @@
                     </td>
                     <td class="{{ advisory.severity|advisory_severity_class }}">{{ advisory.severity|advisory_severity }}</td>
                     <td class="advisory-issued">{{ advisory.issued }}</td>
-                    <td>{% if advisory.affected_hosts %} {{ advisory.affected_hosts.count }} {% else %} 0 {% endif %}</td>
-                    <td>{% if advisory.unresolved_hosts %} {{ advisory.unresolved_hosts.count }} {% else %} 0 {% endif %}</td>
+                    <td>
+                        {% if advisory.affected_hosts %}{{ advisory.affected_hosts.count }}<small> hosts affected</small>{% if advisory.unresolved_hosts %}, {{ advisory.unresolved_hosts.count }}<small> yet to be resolved</small>{% endif %}{% endif %}</td>
+                    <td></td>
                     <td>
                         <div class="progress">
                             <div class="progress-bar progress-bar-success" role="progressbar" style="width: {% if advisory.resolved_hosts %}{{ advisory.resolved_hosts_percentage }}{% else %}0{% endif %}%">
