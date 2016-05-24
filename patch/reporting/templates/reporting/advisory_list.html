@@ -42,7 +42,6 @@
                 <th>Affected</th>
                 <th>Remaining</th>
                 <th>Progress</th>
-                <th>&nbsp;</th>
             </tr>
         </thead>
         <tbody>
@@ -69,14 +68,13 @@
                     <td>{% if advisory.unresolved_hosts %} {{ advisory.unresolved_hosts.count }} {% else %} 0 {% endif %}</td>
                     <td>
                         <div class="progress">
-                          <div class="progress-bar progress-bar-success" role="progressbar" style="width: {% if advisory.resolved_hosts %}{{ advisory.resolved_hosts_percentage }}{% else %}0{% endif %}%">
-                          </div>
-                          <div class="progress-bar progress-bar-info" role="progressbar" style="width: {% if advisory.unresolved_hosts %}{{ advisory.unresolved_hosts_percentage }}{% else %}0{% endif %}%">
-                          </div>
+                            <div class="progress-bar progress-bar-success" role="progressbar" style="width: {% if advisory.resolved_hosts %}{{ advisory.resolved_hosts_percentage }}{% else %}0{% endif %}%">
+                                {% if advisory.affected_hosts and advisory.resolved_hosts_percentage > 20 %}{{ advisory.resolved_hosts_percentage }}%{% endif %}
+
+                            </div>
+                            <div class="progress-bar progress-bar-info" role="progressbar" style="width: {% if advisory.unresolved_hosts %}{{ advisory.unresolved_hosts_percentage }}{% else %}0{% endif %}%">
+                            </div>
                         </div>
-                    </td>
-                    <td>
-                        {% if advisory.affected_hosts %}{{ advisory.resolved_hosts_percentage }}%{% endif %}
                     </td>
                 </tr>
             {% endfor %}
