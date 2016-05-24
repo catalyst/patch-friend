@@ -69,7 +69,7 @@
                           <div class="progress-bar progress-bar-success" role="progressbar" style="width: {{ advisory.resolved_hosts_percentage }}%">
                             {{ advisory.resolved_hosts_percentage }}
                           </div>
-                          <div class="progress-bar progress-bar-info" role="progressbar" style="width: {{ 100 - advisory.resolved_hosts_percentage }}%">
+                          <div class="progress-bar progress-bar-info" role="progressbar" style="width: {{ advisory.unresolved_hosts_percentage }}%">
                           </div>
                         </div>
                     </td>
