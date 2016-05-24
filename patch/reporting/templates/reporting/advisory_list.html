@@ -40,7 +40,7 @@
                 <th>Severity</th>
                 <th>Issued</th>
                 <th>Progress</th>
-                <th>&nbsp;</th>
+                <th style="white-space: nowrap;">&nbsp;</th>
             </tr>
         </thead>
         <tbody>
@@ -72,7 +72,7 @@
                         </div>
                     </td>
                     <td>
-                        {% if advisory.resolved_hosts %}{{ advisory.resolved_hosts.count }} / {% endif %}{% if advisory.affected_hosts %}{{ advisory.affected_hosts.count }}{% endif %}
+                        {% if advisory.resolved_hosts %}{{ advisory.resolved_hosts.count }} ⁄ {% endif %}{% if advisory.affected_hosts %}{{ advisory.affected_hosts.count }}{% endif %}
                     </td>
                 </tr>
             {% endfor %}
