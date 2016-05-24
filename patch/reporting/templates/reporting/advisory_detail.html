@@ -111,20 +111,29 @@
             </td>
         </tr>
         <tr>
-            <th>Remaining hosts</th>
-            <td><a href="{% url 'advisory_hostlist' advisory.upstream_id %}">Export CSV...</a></td>
-        </tr>
-        <tr>
+            <th>Remaining hosts<br><a href="{% url 'advisory_hostlist' advisory.upstream_id %}">Export to CSV</a></th>
             <td>
-                {% regroup advisory.unresolved_hosts by customer as host_list %}
-                    <pre>
-{% for hosts in host_list %}
-## {{ hosts.grouper }}
+                <table class="table package-table">
+                    <thead>
+                        <tr class="release-name-first">
+                            <th class="package-name">Customer</th><th>Hosts</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% regroup advisory.unresolved_hosts by customer as host_list %}
+                        {% for hosts in host_list %}
+                            <tr>
+                                <td>{{ hosts.grouper }}</td>
+                                <td>
+                                    <pre>
 {% for host in hosts.list %}
 {{ host.name }}
-{% endfor %}
-{% endfor %}
-                    </pre>
+{% endfor %}</pre>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    </table>
             </td>
         </tr>
     </table>
