@@ -74,9 +74,7 @@ class Advisory(models.Model):
     def source_url(self):
         return dict(settings.SOURCE_ADVISORY_DETAIL_URLS)[self.source] % self.upstream_id
 
-    '''
-    XXX: explanation of categorisation method?
-    '''
+    # XXX: explanation of categorisation method?
     @advisory_cache
     def affected_hosts(self):
         queries = None
