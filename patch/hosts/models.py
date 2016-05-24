@@ -37,6 +37,13 @@ class Host(models.Model):
     def __unicode__(self):
         return self.name
 
+    def tag_group(self):
+        """
+        A string that can be used to group this host with others having the same tag set.
+        """
+
+        return ", ".join(sorted(list(self.tags.all())))
+
 class HostImportedAttribute(models.Model):
     """
     Stores arbitrary key/value information as collected from e.g. hostinfo or another external data source. Not currently used for much...

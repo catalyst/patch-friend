@@ -103,7 +103,11 @@
                         <tbody>
                             <tr>
                                 <td class="package-name">{{ release_name|advisory_release }}</td>
-                                <td><div class="well command">{{ aptget_command }} {% for key, package_data in release.items %} {{ package_data.package.package }} {% endfor %}</div></td>
+                                <td>
+                                    <div class="well command">
+                                        {{ aptget_command }} {% for key, package_data in release.items %} {{ package_data.package.package }} {% endfor %}
+                                    </div>
+                                </td>
                             </tr>
                         </tbody>
                     {% endfor %}
