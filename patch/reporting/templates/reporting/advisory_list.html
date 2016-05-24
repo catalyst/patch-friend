@@ -67,6 +67,7 @@
                     <td>
                         <div class="progress">
                           <div class="progress-bar progress-bar-success" role="progressbar" style="width: {% if advisory.resolved_hosts %}{{ advisory.resolved_hosts_percentage }}{% else %}0{% endif %}%">
+                            {% if advisory.resolved_hosts %}{{ advisory.resolved_hosts_percentage }}{% else %}0{% endif %}%
                           </div>
                           <div class="progress-bar progress-bar-info" role="progressbar" style="width: {% if advisory.unresolved_hosts %}{{ advisory.unresolved_hosts_percentage }}{% else %}0{% endif %}%">
                           </div>
