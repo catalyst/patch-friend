@@ -130,7 +130,7 @@
                                 <td>{{ hosts.grouper }}</td>
                                 <td>
                                     <div class="well command">
-                                        {% for host in hosts.list %}
+                                        {% for host in hosts.list|dictsort:"name" %}
                                         {{ host.name }}<br>
                                         {% endfor %}
                                     </div>
