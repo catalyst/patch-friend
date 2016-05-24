@@ -131,7 +131,7 @@
                                 <td>
                                     <div class="well command">
                                         {% for host in hosts.list|dictsort:"name" %}
-                                        {{ host.name }}<br>
+                                        {{ host.name }} # {{ host.tag_group }}<br>
                                         {% endfor %}
                                     </div>
                                 </td>
