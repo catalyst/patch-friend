@@ -62,7 +62,7 @@
                         {% endfor %}
                     </td>
                     <td class="{{ advisory.severity|advisory_severity_class }}">{{ advisory.severity|advisory_severity }}</td>
-                    <td class="advisory-issued">{{ advisory.issued }}</td>
+                    <td class="advisory-issued">{{ advisory.issued|date:"Y-m-d P" }}</td>
                     <td>
                         <div class="progress">
                             <div class="progress-bar progress-bar-success" role="progressbar" style="width: {% if advisory.resolved_hosts %}{{ advisory.resolved_hosts_percentage }}{% else %}0{% endif %}%">
