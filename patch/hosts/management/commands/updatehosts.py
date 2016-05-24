@@ -32,7 +32,7 @@ class Command(BaseCommand):
     @transaction.atomic
     def _update_hostinfo_hosts(self):
 
-        default_customer, created = Customer.objects.get_or_create(name='Catalyst')
+        default_customer, created = Customer.objects.get_or_create(name='catalyst')
         if created:
             default_customer.save()
 
@@ -72,7 +72,7 @@ class Command(BaseCommand):
                             tags.append(attribute['value'])
 
                 if customer:
-                    db_customer, db_customer_created = Customer.objects.get_or_create(name=customer)
+                    db_customer, db_customer_created = Customer.objects.get_or_create(name=customer.lower())
                     db_host.customer = db_customer
                 else:
                     db_customer = default_customer
