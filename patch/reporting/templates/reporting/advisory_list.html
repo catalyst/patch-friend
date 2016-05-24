@@ -40,6 +40,7 @@
                 <th>Severity</th>
                 <th>Issued</th>
                 <th>Progress</th>
+                <th>&nbsp;</th>
             </tr>
         </thead>
         <tbody>
@@ -71,6 +72,8 @@
                             <div class="progress-bar progress-bar-info" role="progressbar" style="width: {% if advisory.unresolved_hosts %}{{ advisory.unresolved_hosts_percentage }}{% else %}0{% endif %}%">
                             </div>
                         </div>
+                    </td>
+                    <td>
                         {% if advisory.resolved_hosts %}{{ advisory.resolved_hosts.count }} / {% endif %}{% if advisory.affected_hosts %}{{ advisory.affected_hosts.count }}{% endif %}
                     </td>
                 </tr>
