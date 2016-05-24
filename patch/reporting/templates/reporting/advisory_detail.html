@@ -94,19 +94,19 @@
             <th>Update commands</th>
             <td>
                 <table class="table package-table">
-		    <thead>
-			<tr class="release-name-first">
-			    <th class="package-name">Release</th><th>Command</th>
-			</tr>
-		    </thead>
-		    {% for release_name, release in binary_packages.items %}
-		    <tbody>
-		    <tr>
-			<td class="package-name">{{ release_name|advisory_release }}</td>
-			<td><div class="well command">{{ aptget_command }} {% for key, package_data in release.items %} {{ package_data.package.package }} {% endfor %}</div></td>
-		    </tr>
-		    </tbody>
-		    {% endfor %}
+                    <thead>
+                        <tr class="release-name-first">
+                            <th class="package-name">Release</th><th>Command</th>
+                        </tr>
+                    </thead>
+                    {% for release_name, release in binary_packages.items %}
+                        <tbody>
+                            <tr>
+                                <td class="package-name">{{ release_name|advisory_release }}</td>
+                                <td><div class="well command">{{ aptget_command }} {% for key, package_data in release.items %} {{ package_data.package.package }} {% endfor %}</div></td>
+                            </tr>
+                        </tbody>
+                    {% endfor %}
                 </table>
             </td>
         </tr>
