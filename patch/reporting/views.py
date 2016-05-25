@@ -47,7 +47,7 @@ class AdvisoryDetailView(generic.DetailView):
             binary_packages[package.release][package_key]['architectures'].append(package.architecture)
 
         unresolved_hosts = []
-        for host in advisory.unresolved_hosts():
+        for host in context['object'].unresolved_hosts():
             host_dict = {}
             host_dict['tag_group'] = host.tag_group()
             host_dict.update(django.forms.model_to_dict(host))
