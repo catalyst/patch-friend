@@ -50,7 +50,7 @@ class AdvisoryDetailView(generic.DetailView):
         for host in context['object'].unresolved_hosts():
             host_dict = {}
             host_dict['tag_group'] = host.tag_group()
-            host_dict.update(django.forms.model_to_dict(host))
+            host_dict.update(model_to_dict(host))
             unresolved_hosts.append(host_dict)
 
         # have to convert back to dict to make the template work
