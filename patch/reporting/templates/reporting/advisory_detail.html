@@ -124,14 +124,14 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% regroup advisory.unresolved_hosts by customer as host_list %}
+                        {% regroup unresolved_hosts by customer as host_list %}
                         {% for hosts in host_list %}
                             <tr>
                                 <td>{{ hosts.grouper }}</td>
                                 <td>
                                     <div class="well command">
                                         {% for host in hosts.list|dictsort:"name" %}
-                                        {{ host.name }} # {{ host }}<br>
+                                        {{ host.name }} # {{ host.tag_group }}<br>
                                         {% endfor %}
                                     </div>
                                 </td>

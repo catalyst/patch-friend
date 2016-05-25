@@ -5,6 +5,7 @@ from django.conf import settings
 from django.shortcuts import render, get_object_or_404
 from django.views import generic
 from django.http import HttpResponse
+from django.forms import model_to_dict
 from extra_views import SearchableListMixin
 
 from advisories.models import *
@@ -45,9 +46,17 @@ class AdvisoryDetailView(generic.DetailView):
 
             binary_packages[package.release][package_key]['architectures'].append(package.architecture)
 
+        unresolved_hosts = []
+        for host in advisory.unresolved_hosts():
+            host_dict = {}
+            host_dict['tag_group'] = host.tag_group()
+            host_dict.update(django.forms.model_to_dict(host))
+            unresolved_hosts.append(host_dict)
+
         # have to convert back to dict to make the template work
         context['binary_packages'] = dict(binary_packages)
         context['aptget_command'] = settings.APTGET_COMMAND_STUB
+        context['unresolved_hosts'] = unresolved_hosts
 
         return context
 
