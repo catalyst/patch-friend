@@ -124,7 +124,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% regroup unresolved_hosts by customer as host_list %}
+                        {% regroup unresolved_hosts by customer_name as host_list %}
                         {% for hosts in host_list %}
                             <tr>
                                 <td>{{ hosts.grouper }}</td>
