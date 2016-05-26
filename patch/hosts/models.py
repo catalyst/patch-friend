@@ -42,7 +42,7 @@ class Host(models.Model):
         A string that can be used to group this host with others having the same tag set.
         """
 
-        return ", ".join(sorted(list([tag.name for tag in self.tags.all()])))
+        return ", ".join(sorted(list([tag.name.strip().lower() for tag in self.tags.all()]))).strip()
 
 class HostImportedAttribute(models.Model):
     """

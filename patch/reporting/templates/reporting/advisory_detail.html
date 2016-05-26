@@ -129,11 +129,16 @@
                             <tr>
                                 <td>{{ hosts.grouper }}</td>
                                 <td>
-                                    <div class="well command">
-                                        {% for host in hosts.list|dictsort:"name" %}
-                                        {{ host.name }} # {{ host.tag_group }}<br>
-                                        {% endfor %}
-                                    </div>
+                                    {% regroup hosts.list|dictsort:"tag_group" by tag_group as tag_group_list %}
+                                    {% for tag_group in tag_group_list %}
+                                        <em>{{ tag_group.grouper }}</em>
+                                        <div class="well command">
+                                            {% for host in tag_group.list|dictsort:"name" %}
+                                            {{ host.name }}<br>
+                                            {% endfor %}
+                                        </div>
+                                        <br>
+                                    {% endfor %}
                                 </td>
                             </tr>
                         {% endfor %}
