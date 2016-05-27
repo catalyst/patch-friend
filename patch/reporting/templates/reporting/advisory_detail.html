@@ -144,7 +144,7 @@
                                                         <dd>{{ host.architecture }}</dd>
                                                         <br>
                                                         <dt>Affected packages</dt>
-                                                        <dd>{% for h in host.affected_packages %}{{ h.name }}{% endfor %}</dd>
+                                                        <dd>{% for h in host.affected_packages %}{{ h.name }} {{ h.version }}<br>{% endfor %}</dd>
                                                     </dl>">
                                                     {{ host.name }}
                                                 </span>
