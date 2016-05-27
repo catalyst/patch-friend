@@ -105,7 +105,7 @@
                                 <td class="package-name">{{ release_name|advisory_release }}</td>
                                 <td>
                                     <div class="well command">
-                                        {{ aptget_command }} {% for key, package_data in release.items %} {{ package_data.package.package|sortedlist }} {% endfor %}
+                                        {{ aptget_command }} {% for key, package_data in release.items %} {{ package_data.package.package }} {% endfor %}
                                     </div>
                                 </td>
                             </tr>
@@ -134,21 +134,7 @@
                                         <em>{{ tag_group.grouper }}</em>
                                         <div class="well command">
                                             {% for host in tag_group.list|dictsort:"name" %}
-                                                <span data-container="body" data-toggle="popover" title="{{ host.name }}" data-trigger="hover" data-placement="left" data-html="true" data-content="
-                                                    <dl>
-                                                        <dt>Source</dt>
-                                                        <dd>{{ host.source }}</dd>
-                                                        <dt>Release</dt>
-                                                        <dd>{{ host.release }}</dd>
-                                                        <dt>Arch</dt>
-                                                        <dd>{{ host.architecture }}</dd>
-                                                        <br>
-                                                        <dt>Affected packages</dt>
-                                                        <dd>Foo!</dd>
-                                                    </dl>">
-                                                    {{ host.name }}
-                                                </span>
-                                                <br>
+                                            {{ host.name }}<br>
                                             {% endfor %}
                                         </div>
                                         <br>
