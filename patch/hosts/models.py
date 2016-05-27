@@ -45,7 +45,7 @@ class Host(models.Model):
         return ", ".join(sorted(list([tag.name.strip().lower() for tag in self.tags.all()]))).strip()
 
     def packages_affected_by_advisory(self, advisory):
-        return self.package_set.filter(advisory._affected_packages_query())
+        return self.package_set.filter(advisory._affected_packages_query(self.release))
 
 class HostImportedAttribute(models.Model):
     """
