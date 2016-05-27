@@ -134,7 +134,7 @@
                                         <em>{{ tag_group.grouper }}</em>
                                         <div class="well command">
                                             {% for host in tag_group.list|dictsort:"name" %}
-                                                <span data-container="body" data-toggle="popover" title="{{ host.name }}" data-trigger="hover" data-placement="left" data-html="true" data-content="
+                                                <span data-animation="false" data-container="body" data-toggle="popover" title="{{ host.name }}" data-trigger="hover" data-placement="left" data-html="true" data-content="
                                                     <dl>
                                                         <dt>Source</dt>
                                                         <dd>{{ host.source }}</dd>
