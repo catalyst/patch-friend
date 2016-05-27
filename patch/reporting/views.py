@@ -52,6 +52,7 @@ class AdvisoryDetailView(generic.DetailView):
             host_dict['tag_group'] = host.tag_group()
             host_dict.update(model_to_dict(host))
             host_dict['customer_name'] = host.customer.name
+            host_dict['affected_packages'] = host.packages_affected_by_advisory(context['object'])
             unresolved_hosts.append(host_dict)
 
         # have to convert back to dict to make the template work

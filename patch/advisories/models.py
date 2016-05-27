@@ -64,6 +64,19 @@ class Advisory(models.Model):
 
         return queries
 
+    def _affected_packages_query(self, release):
+        queries = None
+
+        for package in self.binarypackage_set.filter(release=release):
+            query = Q(name=package.package, version__lt=package.safe_version)
+
+            if queries is None:
+                queries = query
+            else:
+                queries = queries | query
+
+        return queries
+
     def get_absolute_url(self):
         from django.core.urlresolvers import reverse
         return reverse('advisory_detail', args=(self.upstream_id, ))

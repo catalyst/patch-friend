@@ -44,6 +44,9 @@ class Host(models.Model):
 
         return ", ".join(sorted(list([tag.name.strip().lower() for tag in self.tags.all()]))).strip()
 
+    def packages_affected_by_advisory(self, advisory):
+        return self.package_set.filter(advisory._affected_packages_query())
+
 class HostImportedAttribute(models.Model):
     """
     Stores arbitrary key/value information as collected from e.g. hostinfo or another external data source. Not currently used for much...
