@@ -70,8 +70,8 @@ class AdvisoryHostListView(generic.View):
         response['Content-Disposition'] = 'attachment; filename="%s.csv"' % kwargs['advisory'].lower()
         advisory = get_object_or_404(Advisory, upstream_id=kwargs['advisory'])
         writer = csv.writer(response, quoting=csv.QUOTE_MINIMAL)
-
+        writer.writerow(["hostname","release","tags"])
         for host in advisory.unresolved_hosts():
-            writer.writerow([host.name, host.release])
+            writer.writerow([host.name, host.release, host.tag_group("|")])
 
         return response

@@ -37,12 +37,12 @@ class Host(models.Model):
     def __unicode__(self):
         return self.name
 
-    def tag_group(self):
+    def tag_group(self, separator=", "):
         """
         A string that can be used to group this host with others having the same tag set.
         """
 
-        return ", ".join(sorted(list([tag.name.strip().lower() for tag in self.tags.all()]))).strip()
+        return separator.join(sorted(list([tag.name.strip().lower() for tag in self.tags.all()]))).strip()
 
     def packages_affected_by_advisory(self, advisory):
         return self.package_set.filter(advisory._affected_packages_query(self.release))
