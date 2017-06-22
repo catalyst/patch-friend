@@ -1,16 +1,33 @@
-import apt_pkg
-apt_pkg.init_system()
-
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.cache import cache
 from django.db import models
-from django.db.models import Q
-from django.db.models.signals import post_save, pre_delete
-from django.dispatch import receiver
 from django.utils import timezone
+from django.db.models import Q
+from django.core.cache import cache
 
-from hosts.models import Host, Package
+from hosts.models import Host
+
+def advisory_cache(func):
+    def func_wrapper(self):
+        cache_key = settings.ADVISORYCACHE_KEYS[func.func_name] % self
+        cache_item = cache.get(cache_key)
+
+        if cache_item is not None:
+            return cache_item
+
+        ret = func(self)
+        cache.set(cache_key, ret, None)
+        return ret
+
+    return func_wrapper
+
+class DebversionField(models.Field):
+    """
+    Field type from `postgresql-9.4-debversion' package in Debian.
+    """
+
+    def db_type(self, connection):
+        return 'debversion'
 
 class Advisory(models.Model):
     """
@@ -31,7 +48,7 @@ class Advisory(models.Model):
         verbose_name_plural = "advisories"
         ordering = ["-issued"]
 
-    def __str__(self):
+    def __unicode__(self):
         return self.upstream_id
 
     def _unresolved_hosts_query(self):
@@ -65,12 +82,13 @@ class Advisory(models.Model):
         return reverse('advisory_detail', args=(self.upstream_id, ))
 
     def source_package_names(self):
-        return ", ".join([package.__str__() for package in self.sourcepackage_set.all()])
+        return ", ".join([package.__unicode__() for package in self.sourcepackage_set.all()])
 
     def source_url(self):
         return dict(settings.SOURCE_ADVISORY_DETAIL_URLS)[self.source] % self.upstream_id
 
     # XXX: explanation of categorisation method?
+    @advisory_cache
     def affected_hosts(self):
         queries = None
 
@@ -95,6 +113,7 @@ class Advisory(models.Model):
 
         return Host.objects.filter(queries).distinct().order_by('customer', 'name')
 
+    @advisory_cache
     def resolved_hosts(self):
         unresolved = self.unresolved_hosts()
         if unresolved is not None:
@@ -109,6 +128,7 @@ class Advisory(models.Model):
 
         return int(round(resolved/affected*100))
 
+    @advisory_cache
     def unresolved_hosts(self):
         try:
             return self.affected_hosts().filter(self._unresolved_hosts_query())
@@ -131,13 +151,13 @@ class SourcePackage(models.Model):
     advisory = models.ForeignKey(Advisory, help_text="Advisory to which this package belongs")
     package = models.CharField(max_length=200, help_text="Name of source package")
     release = models.CharField(choices=settings.RELEASES,max_length=32, help_text="Specific release to which this package belongs")
-    safe_version = models.CharField(max_length=200, help_text="Package version that is to be considered 'safe' at the issue of this advisory")
+    safe_version = DebversionField(max_length=200, help_text="Package version that is to be considered 'safe' at the issue of this advisory")
 
     class Meta:
         verbose_name_plural = "source packages"
         ordering = ["-package"]
 
-    def __str__(self):
+    def __unicode__(self):
         safe_version = self.safe_version
 
         if self.safe_version == '0':
@@ -162,14 +182,14 @@ class BinaryPackage(models.Model):
     source_package = models.ForeignKey(SourcePackage, blank=True, null=True, help_text="If set, the source package from which this binary package was generated")
     package = models.CharField(max_length=200, help_text="Name of binary package")
     release = models.CharField(choices=settings.RELEASES,max_length=32, help_text="Specific release to which this package belongs")
-    safe_version = models.CharField(max_length=200, null=True, help_text="Package version that is to be considered 'safe' at the issue of this advisory")
+    safe_version = DebversionField(max_length=200, null=True, help_text="Package version that is to be considered 'safe' at the issue of this advisory")
     architecture = models.CharField(max_length=200, null=True, help_text="Machine architecture")
 
     class Meta:
         verbose_name_plural = "binary packages"
         ordering = ["-package"]
 
-    def __str__(self):
+    def __unicode__(self):
         if self.safe_version:
             return "%s %s (%s, %s)" % (self.package, self.safe_version, self.release, self.architecture)
         else:
@@ -177,69 +197,3 @@ class BinaryPackage(models.Model):
 
     def source_url(self):
         return dict(settings.SOURCE_PACKAGE_DETAIL_URLS)[self.advisory.source] % (self.release, self.package)
-
-class Problem(models.Model):
-    """
-    Records the details around why a host is affected by an advisory.
-    """
-
-    advisory = models.ForeignKey(Advisory, help_text="Advisory that has caused this problem")
-    host = models.ForeignKey(Host, help_text="Host which has the problem")
-    installed_package_name = models.CharField(max_length=200, help_text="Name of binary package causing the problem", verbose_name='Package name')
-    installed_package_version = models.CharField(max_length=200, help_text="Version of binary package causing the problem", verbose_name='Version')
-    installed_package_architecture = models.CharField(max_length=200, help_text="Architecture of binary package causing the problem", verbose_name='Architecture')
-    safe_package = models.ForeignKey(BinaryPackage, help_text="The safe package version provided by the advisory")
-    created = models.DateTimeField(auto_now_add=True, verbose_name="Discovered")
-    fixed = models.DateTimeField(null=True)
-    fixed_by = models.CharField(null=True, choices=settings.FIX_REASONS, max_length=200, help_text="Way in which the problem was resolved")
-
-    def __str__(self):
-        return "%s: %s %s on %s" % (self.advisory, self.installed_package_name, self.installed_package_version, self.host)
-
-    def is_fixed(self):
-        return self.fixed is not None and timezone.now() >= self.fixed
-    is_fixed.boolean = True
-
-@receiver(post_save, sender=BinaryPackage)
-def cache_applicable_hosts_for_advisory_package(sender, **kwargs):
-    """
-    When a new package is added to an advisory work out what hosts it applies to.
-    """
-
-    advisory_package = kwargs.get('instance')
-    advisory = advisory_package.advisory
-    print("Considering advisory package %s (%s)" % (advisory_package.package, advisory_package.architecture))
-    affected_packages = Package.objects.filter(name=advisory_package.package, architecture=advisory_package.architecture, host__release=advisory_package.release)
-    for package in affected_packages:
-        unsafe = apt_pkg.version_compare(str(package.version), str(advisory_package.safe_version)) < 0
-        print("%s installed on %s is unsafe=%r due to installed version %s being <= %s" %(package.name, package.host, unsafe, package.version, advisory_package.safe_version))
-        if unsafe:
-            Problem.objects.get_or_create(advisory=advisory, host=package.host, installed_package_name=package.name, installed_package_version=package.version, installed_package_architecture=package.architecture, safe_package=advisory_package, fixed__isnull=True)
-        else: # remove any problems that might have existed due to older incarnations of this advisory
-            Problem.objects.filter(advisory=advisory, host=package.host, installed_package_name=package.name, installed_package_version=package.version, installed_package_architecture=package.architecture, safe_package=advisory_package).delete()
-
-@receiver(post_save, sender=Package)
-def add_package_to_host(sender, **kwargs):
-    """
-    When a package is added to a host find any advisories that apply to it and create problems.
-    """
-
-    package = kwargs.get('instance')
-    print("installed %s on %s" % (package, package.host))
-    advisory_packages = BinaryPackage.objects.filter(package=package.name, architecture=package.architecture, release=package.host.release)
-    for advisory_package in advisory_packages:
-        advisory = advisory_package.advisory
-        unsafe = apt_pkg.version_compare(str(package.version), str(advisory_package.safe_version)) < 0
-        print("%s installed on %s is unsafe=%r due to installed version %s being <= %s" %(package.name, package.host, unsafe, package.version, advisory_package.safe_version))
-        if unsafe:
-            Problem.objects.get_or_create(advisory=advisory, host=package.host, installed_package_name=package.name, installed_package_version=package.version, installed_package_architecture=package.architecture, safe_package=advisory_package, fixed__isnull=True)
-
-@receiver(pre_delete, sender=Package)
-def remove_package_from_host(sender, **kwargs):
-    """
-    When a package is removed from a host find any problems removing it might solve.
-    """
-
-    package = kwargs.get('instance')
-    print("removed %s from %s" % (package, package.host))
-    Problem.objects.filter(host=package.host, installed_package_name=package.name, installed_package_version=package.version, installed_package_architecture=package.architecture).update(fixed=timezone.now(), fixed_by='removed')

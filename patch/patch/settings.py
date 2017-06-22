@@ -13,7 +13,8 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = '/home/filipvujicic/patchfriend/patch-friend/'
 
 
 # Quick-start development settings - unsuitable for production
@@ -80,14 +81,21 @@ WSGI_APPLICATION = 'patch.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/1.8/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
+#         'NAME': 'patch',
+#         'USER': 'patch',
+#         'PASSWORD': 'patch',
+#         'HOST': 'localhost',
+#         'PORT': '',
+#     }
+# }
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'patch',
-        'USER': 'patch',
-        'PASSWORD': 'patch',
-        'HOST': 'localhost',
-        'PORT': '',
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db/db.sqlite3'),
     }
 }
 
@@ -115,8 +123,15 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.8/howto/static-files/
 
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 65535
 STATIC_URL = '/static/'
 
+# Configuration for hotplate-hosts
+
+OSQUERY_ENROLL_SECRET = "hotplate"
+FIX_REASONS = (
+    ('removed', 'Package removed'),
+)
 
 ADVISORY_SOURCES = (
     ('ubuntu', 'Ubuntu'),

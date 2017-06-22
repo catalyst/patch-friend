@@ -24,7 +24,8 @@ class HostinfoClient(object):
         self.hostinfo_base_url = hostinfo_base_url or 'http://hostinfo/'
 
     def all_hosts_and_packages(self):
-        return json.loads(requests.get("%s/cgi-bin/hosts-and-packages.pl" % self.hostinfo_base_url).content)
+        # return json.loads(requests.get("%s/cgi-bin/hosts-and-packages.pl" % self.hostinfo_base_url).content)
+        return requests.get("%s/cgi-bin/hosts-and-packages.pl" % self.hostinfo_base_url).json()
 
 class Command(BaseCommand):
     help = 'Update all sources of hosts and packages'
@@ -42,7 +43,7 @@ class Command(BaseCommand):
         all_hostinfo_hosts = self.hostinfo_client.all_hosts_and_packages()
 
         all_database_fingerprints = set([host.hostinfo_fingerprint for host in all_database_hosts])
-        all_hostinfo_fingerprints = set([host['metadata']['fingerprint'] for hostname, host in all_hostinfo_hosts.iteritems()])
+        all_hostinfo_fingerprints = set([host['metadata']['fingerprint'] for hostname, host in all_hostinfo_hosts.items()])
 
         new_hosts = all_hostinfo_fingerprints - all_database_fingerprints
         hosts_to_remove = all_database_fingerprints - all_hostinfo_fingerprints
@@ -51,7 +52,7 @@ class Command(BaseCommand):
 
         self.stdout.write("  %i hosts found (%i new)" % (len(all_hostinfo_fingerprints), len(new_hosts)))
 
-        for hostname, host_data in all_hostinfo_hosts.iteritems():
+        for hostname, host_data in all_hostinfo_hosts.items():
             self.stdout.write("      updating %s..." % hostname, ending='')
             db_host, db_host_created = Host.objects.get_or_create(hostinfo_fingerprint=host_data['metadata']['fingerprint'], defaults={'hostinfo_id': host_data['metadata']['hostid'], 'customer': default_customer, 'name': hostname})
 
@@ -124,8 +125,8 @@ class Command(BaseCommand):
         Host.objects.filter(hostinfo_fingerprint__in=hosts_to_remove).delete()
 
         # entries in advisories_cache are only valid for the hostinfo run they were generated against
-        self.stdout.write("  clearing advisories cache")
-        cache.clear()
+        # self.stdout.write("  clearing advisories cache")
+        # cache.clear()
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.MIGRATE_HEADING("Updating hosts from hostinfo..."))

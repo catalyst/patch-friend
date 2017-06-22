@@ -1,5 +1,5 @@
 import collections, csv
-from urllib import urlencode
+# from urllib import urlencode
 
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404
@@ -23,7 +23,7 @@ class AdvisoryIndexView(SearchableListMixin, generic.ListView):
         context = super(AdvisoryIndexView, self).get_context_data(**kwargs)
         context['paginate_by'] = self.request.GET.get('paginate_by', self.paginate_by)
         context['q'] = self.request.GET.get('q', '')
-        context['pagination_extra'] = urlencode({'q': context['q'], 'paginate_by': context['paginate_by']})
+        # context['pagination_extra'] = urlencode({'q': context['q'], 'paginate_by': context['paginate_by']})
         return context
 
 class AdvisoryDetailView(generic.DetailView):
