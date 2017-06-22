@@ -1,0 +1,11 @@
+Django==1.11
+Sphinx==1.3.3
+chardet==2.3.0
+django-bootstrap3==7.0.0
+django-extra-views==0.7.1
+python-debian==0.1.23
+pytz==2015.7
+requests==2.9.1
+svn==0.3.36
+psycopg2==2.6.1
+python-dateutil==2.5.3

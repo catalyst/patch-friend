@@ -7,9 +7,10 @@ packagecache.json
 
 # Operating cache
 patch/advisory_cache
+advisory_cache
 
 # Dev DB
-patch/db.sqlite3*
+db/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
