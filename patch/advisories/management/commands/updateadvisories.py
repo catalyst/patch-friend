@@ -12,6 +12,10 @@ from django.db import transaction
 
 from dateutil.parser import parse as dateutil_parse
 import deb822
+
+import apt_inst
+import apt
+
 import pytz
 import requests
 import svn.remote
@@ -127,22 +131,47 @@ class DebianFeed(object):
 
         # grab the release metadata from the repository
         for release_name in self.releases:
+            # print('\n\n\n\nrelease name:\n', release_name)
             release_metadata[release_name] = deb822.Release(requests.get("%s/dists/%s/updates/Release" % (self.security_apt_url, release_name)).text)
+            # print(deb822.Release(requests.get("%s/dists/%s/updates/Release" % (self.security_apt_url, release_name)).text))
+            print("%s/dists/%s/updates/Release" % (self.security_apt_url, release_name))
+
+            # print('\n\nrelease metadata:\n', release_metadata)
+
+
+        # successcount = 0
+        # failcount = 0
+
 
         # grab the binary package metadata for the desired architectures
+        # this section attempts to make a reverse mapping for working out what binary packages a particular source package builds
         for release_name, release_metadatum in release_metadata.items():
             for component in release_metadatum['Components'].split():
                 for architecture in [architecture for architecture in release_metadatum['Architectures'].split() if architecture in self.architectures]:
                     packages_url = "%s/dists/%s/%s/binary-%s/Packages.bz2" % (self.security_apt_url, release_name, component, architecture)
+                    # print(packages_url)
                     packages = deb822.Deb822.iter_paragraphs(bz2.decompress(requests.get(packages_url).content).decode("utf-8"))
                     for binary_package in packages:
+                        # print(binary_package)
                         source_field = binary_package.get('Source', binary_package['Package']).split()
                         source_package_name = source_field[0]
 
+                        # try:
+                        #     x = source_field[1]
+                        #     import time
+                        #     time.sleep(5)
+                        # except:
+                        #     pass
+
                         try:
                             source_package_version = source_field[1].strip('()')
+                            # successcount += 1
                         except:
                             source_package_version = binary_package['Version']
+                            # failcount += 1
+
+                        # if successcount % 10 == 0:
+                        # print('success: ', successcount, '\tfail: ', failcount)
 
                         source_package_key = (release_name, source_package_name, source_package_version)
 
@@ -153,6 +182,7 @@ class DebianFeed(object):
                             source_packages[source_package_key][binary_package['Package']] = {}
 
                         source_packages[source_package_key][binary_package['Package']][architecture] = binary_package['Version']
+                        # print(source_packages, '\n\n\n')
 
         print("OK")
         print("  Updating security-tracker data... ", end='')
@@ -177,22 +207,33 @@ class DebianFeed(object):
             db_advisory = Advisory(upstream_id=advisory, source="debian", issued=svn_advisories[advisory]['issued'], short_description=description, description=long_description)
             db_advisory.save()
             for package, versions in svn_advisories[advisory]['packages'].items():
+                # print('package, versions', package, versions)
                 for release, version in versions.items():
                     # make the source package object
                     db_srcpackage = SourcePackage(advisory=db_advisory, package=package, release=release, safe_version=version)
+                    # print("srcpackage: ", db_srcpackage)
                     db_srcpackage.save()
                     search_packages.add(package)
                     search_packages.add(version)
 
                     # attempt by convoluted means to get the binary packages for that source package
                     try:
-                        # raise ValueError #XXX to make testing a bit faster
-                    # except ValueError:
+                        # print(source_packages)
                         if (release, package, version) in source_packages: # package is current so in the repo
+                            # print("\trelease, package, version\t\t\t\t: ", release, package, version)
+                            # print('\n\n')
+                            # print(source_packages[(release, package, version)].items())
+                            # print(source_packages)
+                            # print('\n\n')
                             for binary_package_name, binary_package_architectures in source_packages[(release, package, version)].items():
+                                # print("\tbinary_package_name, binary_package_architectures\t: ", binary_package_name, binary_package_architectures)
                                 for architecture in binary_package_architectures:
-                                    db_binpackage = BinaryPackage(source_package=db_srcpackage, advisory=db_advisory, package=binary_package_name, release=release, safe_version=version, architecture=architecture)
-                                    # db_binpackage.save()
+                                    # print("\tarchitecture\t\t\t\t\t\t: ", architecture)
+                                    binversion = source_packages[(release, package, version)][binary_package_name][architecture]
+                                    # print(binversion)
+                                    # print('source_package=',db_srcpackage, 'advisory=',db_advisory, 'package=',binary_package_name, 'release=',release, 'safe_version=',binversion, 'architecture=',architecture)
+                                    db_binpackage = BinaryPackage(source_package=db_srcpackage, advisory=db_advisory, package=binary_package_name, release=release, safe_version=binversion, architecture=architecture)
+                                    db_binpackage.save()
                                     search_packages.add(binary_package_name)
                                     search_packages.add(version)
                         else: # package is not latest in the repo, hopefully it's on snapshots.d.o
@@ -217,6 +258,7 @@ class DebianFeed(object):
                     except KeyboardInterrupt:
                         raise
                     except:
+                        raise
                         print("could not get binary packages for %s/%s, assuming there are none" % (release, package))
 
 class UbuntuFeed(object):
@@ -291,6 +333,8 @@ class UbuntuFeed(object):
 
         for advisory in new_advisories:
             print("    Processing USN %s... " % advisory, end='')
+            print('passing')
+            continue
 
             search_packages = set()
 
@@ -339,6 +383,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.MIGRATE_HEADING("Updating DSAs..."))
         feed = DebianFeed()
         feed.update_local_database()
-        self.stdout.write(self.style.MIGRATE_HEADING("Updating USNs..."))
-        feed = UbuntuFeed()
-        feed.update_local_database()
+        # XXX
+        # self.stdout.write(self.style.MIGRATE_HEADING("Updating USNs..."))
+        # feed = UbuntuFeed()
+        # feed.update_local_database()
