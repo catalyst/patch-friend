@@ -10,7 +10,7 @@ class Customer(models.Model):
 
     name = models.CharField(max_length=200, help_text="Name of customer.")
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
 # Host models
@@ -34,7 +34,7 @@ class Host(models.Model):
     updated = models.DateTimeField(auto_now_add=True, help_text="When this status was discovered.")
     source = models.CharField(choices=SOURCES, max_length=32, help_text="Source of this host's data.")
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     def tag_group(self, separator=", "):
@@ -59,7 +59,7 @@ class HostImportedAttribute(models.Model):
     class Meta:
         unique_together = (("host", "key"),)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.key
 
 # Package models
@@ -85,7 +85,7 @@ class Package(models.Model):
     class Meta:
         unique_together = (("name", "host", "architecture"),)
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s" % self.name
 
 # Tag models
@@ -101,5 +101,5 @@ class Tag(models.Model):
     class Meta:
         unique_together = (("name", "customer"),)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
