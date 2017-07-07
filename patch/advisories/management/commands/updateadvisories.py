@@ -22,6 +22,8 @@ import svn.remote
 
 from advisories.models import *
 
+import logging
+
 class DebianFeed(object):
     """
     Syncs additions to the official DSA list in to the local database, as well as retrieving and parsing metadata about each one.
@@ -134,7 +136,7 @@ class DebianFeed(object):
             # print('\n\n\n\nrelease name:\n', release_name)
             release_metadata[release_name] = deb822.Release(requests.get("%s/dists/%s/updates/Release" % (self.security_apt_url, release_name)).text)
             # print(deb822.Release(requests.get("%s/dists/%s/updates/Release" % (self.security_apt_url, release_name)).text))
-            print("%s/dists/%s/updates/Release" % (self.security_apt_url, release_name))
+            # print("%s/dists/%s/updates/Release" % (self.security_apt_url, release_name))
 
             # print('\n\nrelease metadata:\n', release_metadata)
 
@@ -149,7 +151,7 @@ class DebianFeed(object):
             for component in release_metadatum['Components'].split():
                 for architecture in [architecture for architecture in release_metadatum['Architectures'].split() if architecture in self.architectures]:
                     packages_url = "%s/dists/%s/%s/binary-%s/Packages.bz2" % (self.security_apt_url, release_name, component, architecture)
-                    # print(packages_url)
+                    logging.debug('packages_url: ' + packages_url)
                     packages = deb822.Deb822.iter_paragraphs(bz2.decompress(requests.get(packages_url).content).decode("utf-8"))
                     for binary_package in packages:
                         # print(binary_package)
@@ -216,19 +218,15 @@ class DebianFeed(object):
                     search_packages.add(package)
                     search_packages.add(version)
 
+
                     # attempt by convoluted means to get the binary packages for that source package
                     try:
                         # print(source_packages)
                         if (release, package, version) in source_packages: # package is current so in the repo
-                            # print("\trelease, package, version\t\t\t\t: ", release, package, version)
-                            # print('\n\n')
-                            # print(source_packages[(release, package, version)].items())
-                            # print(source_packages)
-                            # print('\n\n')
+                            # print(source_packages[(release, package, version)])
                             for binary_package_name, binary_package_architectures in source_packages[(release, package, version)].items():
                                 # print("\tbinary_package_name, binary_package_architectures\t: ", binary_package_name, binary_package_architectures)
                                 for architecture in binary_package_architectures:
-                                    # print("\tarchitecture\t\t\t\t\t\t: ", architecture)
                                     binversion = source_packages[(release, package, version)][binary_package_name][architecture]
                                     # print(binversion)
                                     # print('source_package=',db_srcpackage, 'advisory=',db_advisory, 'package=',binary_package_name, 'release=',release, 'safe_version=',binversion, 'architecture=',architecture)
@@ -258,7 +256,6 @@ class DebianFeed(object):
                     except KeyboardInterrupt:
                         raise
                     except:
-                        raise
                         print("could not get binary packages for %s/%s, assuming there are none" % (release, package))
 
 class UbuntuFeed(object):
