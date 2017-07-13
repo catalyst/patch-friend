@@ -148,9 +148,7 @@ class Command(BaseCommand):
 
             # Adds all the package from packages_to_add into the database
             for package in packages_to_add:
-                pkgs.append(Package(name=package[0], version=package[1], host=db_host, architecture=package[2]))
-            logging.debug("Adding packages: " + str(pkgs))
-            Package.objects.bulk_create(pkgs)
+                Package(name=package[0], version=package[1], host=db_host, architecture=package[2]).save()
 
             self.stdout.write("Done")
 
