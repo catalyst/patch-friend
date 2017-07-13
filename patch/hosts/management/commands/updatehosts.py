@@ -15,8 +15,11 @@ from django.db import transaction
 from django.utils import timezone
 
 import requests
+import logging
 
 from hosts.models import *
+
+logging.basicConfig(format='%(asctime)s | %(levelname)s: %(message)s', level=logging.DEBUG)
 
 class HostinfoClient(object):
 
@@ -40,13 +43,17 @@ class Command(BaseCommand):
         self.stdout.write("  Wrangling all host data (this will take a minute or two)... ", ending='')
 
         all_database_hosts = Host.objects.filter(source='hostinfo')
+        # print('all_database_hosts', all_database_hosts)
         all_hostinfo_hosts = self.hostinfo_client.all_hosts_and_packages()
+        # print('all_hostinfo_hosts', all_hostinfo_hosts)
 
         all_database_fingerprints = set([host.hostinfo_fingerprint for host in all_database_hosts])
         all_hostinfo_fingerprints = set([host['metadata']['fingerprint'] for hostname, host in all_hostinfo_hosts.items()])
 
         new_hosts = all_hostinfo_fingerprints - all_database_fingerprints
+        logging.debug('New hosts: ' + str(new_hosts))
         hosts_to_remove = all_database_fingerprints - all_hostinfo_fingerprints
+        logging.debug('Hosts to remove: ' + str(hosts_to_remove))
 
         self.stdout.write("OK")
 
@@ -86,6 +93,7 @@ class Command(BaseCommand):
             try:
                 release = host_data['metadata']['release'].split(':')[1]
             except:
+                logging.critical(hostname + ' has no release!')
                 release = ''
 
             try:
@@ -94,6 +102,7 @@ class Command(BaseCommand):
                     architecture = architecture.replace('i686','i386')
                     architecture = architecture.replace('x86_64','amd64')
             except:
+                logging.critical(hostname + ' has no architecture!')
                 architecture = ''
 
             db_host.release = release
@@ -101,9 +110,16 @@ class Command(BaseCommand):
             db_host.source = 'hostinfo'
             db_host.save()
 
-            Package.objects.filter(host__pk=db_host.pk).delete()
-            pkgs = []
 
+            # Does the packages
+            pkgs = []
+            hostinfo_packages = set()
+
+            logging.info("Getting packages from databse...")
+            database_packages = set(Package.objects.filter(host=db_host).values_list("name", "version", "architecture"))
+            # print(database_packages)
+
+            # for every package in hostinfo host...
             for package in host_data['packages']:
                 # only 'ii' packages are imported
                 if package['status'] != 'ii':
@@ -116,9 +132,26 @@ class Command(BaseCommand):
                     package_architecture = architecture
                     package_name = package['name']
 
-                pkgs.append(Package(name=package_name, version=package['version'], host=db_host, architecture=package_architecture))
+                hostinfo_packages.add((package_name, package['version'], package_architecture))
 
+            # Any packages that are in hostinfo but not in database will be added ot daabase
+            packages_to_add = hostinfo_packages - database_packages
+            print("\n\npackages to add: ", packages_to_add, "\n")
+
+            # Any packages that are /not/ in hostinfo but are in database have been removed, so will be deleted form database
+            packages_to_remove = database_packages - hostinfo_packages
+            print("packages to remove: ", packages_to_remove, "\n")
+
+            # Removes each package that is in packages_to_remove from the database
+            for package in packages_to_remove:
+                Package.objects.filter(name=package[0], version=package[1], host=db_host, architecture=package[2]).delete()
+
+            # Adds all the package from packages_to_add into the database
+            for package in packages_to_add:
+                pkgs.append(Package(name=package[0], version=package[1], host=db_host, architecture=package[2]))
+            logging.debug("Adding packages: " + str(pkgs))
             Package.objects.bulk_create(pkgs)
+
             self.stdout.write("Done")
 
         self.stdout.write("  %i removed hosts" % len(hosts_to_remove))
