@@ -24,6 +24,10 @@ from advisories.models import *
 
 import logging
 
+logging.basicConfig(format='%(asctime)s | %(levelname)s: %(message)s', level=logging.DEBUG)
+
+logging.info('test')
+
 class DebianFeed(object):
     """
     Syncs additions to the official DSA list in to the local database, as well as retrieving and parsing metadata about each one.
@@ -221,16 +225,16 @@ class DebianFeed(object):
 
                     # attempt by convoluted means to get the binary packages for that source package
                     try:
-                        # print(source_packages)
                         if (release, package, version) in source_packages: # package is current so in the repo
-                            # print(source_packages[(release, package, version)])
+                            logging.debug("source package: " + str(source_packages[(release, package, version)]))
                             for binary_package_name, binary_package_architectures in source_packages[(release, package, version)].items():
                                 # print("\tbinary_package_name, binary_package_architectures\t: ", binary_package_name, binary_package_architectures)
                                 for architecture in binary_package_architectures:
                                     binversion = source_packages[(release, package, version)][binary_package_name][architecture]
                                     # print(binversion)
-                                    # print('source_package=',db_srcpackage, 'advisory=',db_advisory, 'package=',binary_package_name, 'release=',release, 'safe_version=',binversion, 'architecture=',architecture)
+                                    logging.debug('  source_package=' + str(db_srcpackage) + '  advisory=' + str(db_advisory) + '  package=' + str(binary_package_name) + '  release=' + str(release) + '  safe_version=' + str(binversion) + '  architecture=' + str(architecture))
                                     db_binpackage = BinaryPackage(source_package=db_srcpackage, advisory=db_advisory, package=binary_package_name, release=release, safe_version=binversion, architecture=architecture)
+                                    # logging.debug("db_binpackage: " + str(db_binpackage))
                                     db_binpackage.save()
                                     search_packages.add(binary_package_name)
                                     search_packages.add(version)
