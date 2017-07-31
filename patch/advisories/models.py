@@ -70,30 +70,55 @@ class Advisory(models.Model):
     def source_url(self):
         return dict(settings.SOURCE_ADVISORY_DETAIL_URLS)[self.source] % self.upstream_id
 
-    # XXX: explanation of categorisation method?
+    # # XXX: explanation of categorisation method?
+    # def affected_hosts(self):
+    #     queries = None
+    #
+    #     for package in self.binarypackage_set.all():
+    #         if package.architecture == 'all':
+    #             query = Q(package__name=package.package,
+    #                     package__host__release=package.release,
+    #                     )
+    #         else:
+    #             query = Q(package__name=package.package,
+    #                     package__host__release=package.release,
+    #                     package__architecture=package.architecture,
+    #                     )
+    #
+    #         if queries is None:
+    #             queries = query
+    #         else:
+    #             queries = queries | query
+    #
+    #     if queries is None:
+    #         return Host.objects.none()
+    #
+    #     return Host.objects.filter(queries).distinct().order_by('customer', 'name')
+
+    # Probably a hacky way of caching
+    host_names = set()
+
     def affected_hosts(self):
-        queries = None
 
-        for package in self.binarypackage_set.all():
-            if package.architecture == 'all':
-                query = Q(package__name=package.package,
-                        package__host__release=package.release,
-                        )
-            else:
-                query = Q(package__name=package.package,
-                        package__host__release=package.release,
-                        package__architecture=package.architecture,
-                        )
+        try:  # Debug stuff, should be removed
+            if i_index:
+                pass
+        except:
+            global i_index
+            i_index = 0
+        i_index += 1
+        print(i_index, '\t', str(self))
 
-            if queries is None:
-                queries = query
-            else:
-                queries = queries | query
+        # print(self.problem_set.all().all())
+        # print(type(self.problem_set.all()))
 
-        if queries is None:
-            return Host.objects.none()
+        if len(self.host_names) == 0:
+            self.host_names = set([problem.host.name for problem in self.problem_set.all()])
 
-        return Host.objects.filter(queries).distinct().order_by('customer', 'name')
+        # print('h', host_names)
+
+        return Host.objects.filter(name__in=self.host_names).distinct().order_by('customer', 'name')
+        # return Host.objects.filter(problem__advisory=self).distinct().order_by('customer', 'name')
 
     def resolved_hosts(self):
         unresolved = self.unresolved_hosts()

@@ -52,6 +52,8 @@ class AdvisoryDetailView(generic.DetailView):
             host_dict['tag_group'] = host.tag_group()
             host_dict.update(model_to_dict(host))
             host_dict['customer_name'] = host.customer.name
+            # host_dict['affected_packages'] = [pkg for pkg in Problem.objects.filter(host=host.name, advisory=context['object'])]
+            # print('got here', host_dict['affected_packages'])
             host_dict['affected_packages'] = host.packages_affected_by_advisory(context['object'])
             unresolved_hosts.append(host_dict)
 

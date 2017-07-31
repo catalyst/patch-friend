@@ -44,6 +44,7 @@
             </tr>
         </thead>
         <tbody>
+            {# Creates a row for every advisory #}
             {% for advisory in object_list %}
                 {% regroup advisory.sourcepackage_set.all|dictsort:'release' by release as release_list %}
                 {% regroup advisory.sourcepackage_set.all by package as source_package_list %}
@@ -52,11 +53,13 @@
                     <td class="advisory-upstream-id"><img class="distro-icon" src="{% static 'reporting/icons/'|add:advisory.source|add:'.png' %}" alt="{{ advisory.source|advisory_source }}"><a href="{{ advisory.get_absolute_url }}">{{ advisory.upstream_id }}</a></td>
                     <td>{{ advisory.short_description }}</td>
                     <td>
+                        {# All releases that an advisory applies to #}
                         {% for release in release_list %}
                             {{ release.grouper }}{% if not forloop.last %}, {% endif %}
                         {% endfor %}
                     </td>
                     <td>
+                        {# All source packages that an advisory applies to #}
                         {% for package in source_package_list %}
                             <span class="package-name">{{ package.grouper }}</span>{% if not forloop.last %}, {% endif %}
                         {% endfor %}
@@ -64,6 +67,7 @@
                     <td class="{{ advisory.severity|advisory_severity_class }}">{{ advisory.severity|advisory_severity }}</td>
                     <td class="advisory-issued">{{ advisory.issued|date:"Y-m-d" }}</td>
                     <td>
+                        {# A progress bar showing the amount of hosts that have been patched #}
                         <div class="progress">
                             <div class="progress-bar progress-bar-info" role="progressbar" style="width: {% if advisory.resolved_hosts %}{{ advisory.resolved_hosts_percentage }}{% else %}0{% endif %}%">
                             </div>

@@ -137,16 +137,7 @@ class DebianFeed(object):
 
         # grab the release metadata from the repository
         for release_name in self.releases:
-            # print('\n\n\n\nrelease name:\n', release_name)
             release_metadata[release_name] = deb822.Release(requests.get("%s/dists/%s/updates/Release" % (self.security_apt_url, release_name)).text)
-            # print(deb822.Release(requests.get("%s/dists/%s/updates/Release" % (self.security_apt_url, release_name)).text))
-            # print("%s/dists/%s/updates/Release" % (self.security_apt_url, release_name))
-
-            # print('\n\nrelease metadata:\n', release_metadata)
-
-
-        # successcount = 0
-        # failcount = 0
 
 
         # grab the binary package metadata for the desired architectures
@@ -158,26 +149,13 @@ class DebianFeed(object):
                     logging.debug('packages_url: ' + packages_url)
                     packages = deb822.Deb822.iter_paragraphs(bz2.decompress(requests.get(packages_url).content).decode("utf-8"))
                     for binary_package in packages:
-                        # print(binary_package)
                         source_field = binary_package.get('Source', binary_package['Package']).split()
                         source_package_name = source_field[0]
 
-                        # try:
-                        #     x = source_field[1]
-                        #     import time
-                        #     time.sleep(5)
-                        # except:
-                        #     pass
-
                         try:
                             source_package_version = source_field[1].strip('()')
-                            # successcount += 1
                         except:
                             source_package_version = binary_package['Version']
-                            # failcount += 1
-
-                        # if successcount % 10 == 0:
-                        # print('success: ', successcount, '\tfail: ', failcount)
 
                         source_package_key = (release_name, source_package_name, source_package_version)
 
@@ -188,7 +166,6 @@ class DebianFeed(object):
                             source_packages[source_package_key][binary_package['Package']] = {}
 
                         source_packages[source_package_key][binary_package['Package']][architecture] = binary_package['Version']
-                        # print(source_packages, '\n\n\n')
 
         print("OK")
         print("  Updating security-tracker data... ", end='')
@@ -334,8 +311,6 @@ class UbuntuFeed(object):
 
         for advisory in new_advisories:
             print("    Processing USN %s... " % advisory, end='')
-            print('passing')
-            continue
 
             search_packages = set()
 
@@ -384,7 +359,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.MIGRATE_HEADING("Updating DSAs..."))
         feed = DebianFeed()
         feed.update_local_database()
-        # XXX
-        # self.stdout.write(self.style.MIGRATE_HEADING("Updating USNs..."))
-        # feed = UbuntuFeed()
-        # feed.update_local_database()
+
+        self.stdout.write(self.style.MIGRATE_HEADING("Updating USNs..."))
+        feed = UbuntuFeed()
+        feed.update_local_database()

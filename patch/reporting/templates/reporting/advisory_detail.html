@@ -32,6 +32,12 @@
                 {% endfor %}
             </td>
         </tr>
+
+        {# Show progress of servers patched. Might be able to do more efficiently if possible#}
+        <tr style="separate-from-above">
+            <th>Progress</th><td>{% if advisory.resolved_hosts %}{{ advisory.resolved_hosts.count }} ⁄ {% endif %}{% if advisory.affected_hosts %}{{ advisory.affected_hosts.count }}{% endif %}</tb>
+        </tr>
+
         <tr class="separate-from-above">
             <th>Local severity</th><td class="{{ advisory.severity|advisory_severity_class }}">{{ advisory.severity|advisory_severity }}</td>
         </tr>

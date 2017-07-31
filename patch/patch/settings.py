@@ -161,7 +161,8 @@ RELEASES = (
     ('wheezy', 'Debian Wheezy 7.0'),
     ('jessie', 'Debian Jessie 8.0'),
     ('precise', 'Ubuntu Precise LTS 12.04'),
-    ('trusty', 'Ubuntu Trusty LTS 14.04',)
+    ('trusty', 'Ubuntu Trusty LTS 14.04',),
+    ('xenial', 'Ubuntu Xenial LTS 16.04',)
 )
 
 # Data source plugins
