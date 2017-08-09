@@ -136,11 +136,11 @@ class Command(BaseCommand):
 
             # Any packages that are in hostinfo but not in database will be added ot daabase
             packages_to_add = hostinfo_packages - database_packages
-            print("\n\npackages to add: ", packages_to_add, "\n")
+            # print("\n\npackages to add: ", packages_to_add, "\n")
 
             # Any packages that are /not/ in hostinfo but are in database have been removed, so will be deleted form database
             packages_to_remove = database_packages - hostinfo_packages
-            print("packages to remove: ", packages_to_remove, "\n")
+            # print("packages to remove: ", packages_to_remove, "\n")
 
             # Removes each package that is in packages_to_remove from the database
             for package in packages_to_remove:

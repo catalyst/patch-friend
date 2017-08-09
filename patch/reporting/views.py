@@ -19,11 +19,14 @@ class AdvisoryIndexView(SearchableListMixin, generic.ListView):
     def get_paginate_by(self, queryset):
         return self.request.GET.get('paginate_by', self.paginate_by)
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs):  # NOTE: this is where the input dict is defined
         context = super(AdvisoryIndexView, self).get_context_data(**kwargs)
         context['paginate_by'] = self.request.GET.get('paginate_by', self.paginate_by)
         context['q'] = self.request.GET.get('q', '')
         # context['pagination_extra'] = urlencode({'q': context['q'], 'paginate_by': context['paginate_by']})
+        # for advisory in context['advisory_list']:
+            # print(advisory.problems)
+            # print(advisory.affected_hosts.all, '\n')
         return context
 
 class AdvisoryDetailView(generic.DetailView):

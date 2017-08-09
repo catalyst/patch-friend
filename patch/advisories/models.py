@@ -26,6 +26,7 @@ class Advisory(models.Model):
     severity = models.IntegerField(blank=True, choices=settings.ADVISORY_SEVERITIES, default=0, help_text="Local severity of the advisory, once it has been reviewed")
     reviewed_by = models.ForeignKey(User, blank=True, null=True, help_text="Person who locally reviewed the advisory for its overall severity (or None if the severity was determined automatically)")
     search_keywords = models.TextField(blank=True, null=True, help_text="Space separated list of keywords used to speed up search")
+    affected_hosts = models.ManyToManyField(Host, through='Problem', help_text="All hosts that have a problem with this advisory")
 
     class Meta:
         verbose_name_plural = "advisories"
@@ -34,18 +35,23 @@ class Advisory(models.Model):
     def __str__(self):
         return self.upstream_id
 
-    def _unresolved_hosts_query(self):
-        queries = None
 
-        for package in self.binarypackage_set.all():
-            query = Q(package__name=package.package, package__version__lt=package.safe_version, package__host__release=package.release)
+    # This is a function while affected hosts is a variable... TODO: decide what to do
+    def unresolved_hosts(self):
+        return Host.objects.filter(problem__fixed__isnull=False, problem__advisory=self)
 
-            if queries is None:
-                queries = query
-            else:
-                queries = queries | query
+    # Returns a set currently. TODO: do this properly
+    def resolved_hosts(self):
+        return set(self.affected_hosts.all()) - set(self.unresolved_hosts().all())
 
-        return queries
+    # These can be done much better. TODO: redo these
+    def resolved_hosts_percentage(self):
+        return (float(len(self.resolved_hosts()))/float(self.affected_hosts.distinct().count()))*100
+
+    def unresolved_hosts_percentage(self):
+        return ((float(self.unresolved_hosts().distinct().count()))/float(self.affected_hosts.distinct().count()))*100
+
+
 
     def _affected_packages_query(self, release):
         queries = None
@@ -70,81 +76,6 @@ class Advisory(models.Model):
     def source_url(self):
         return dict(settings.SOURCE_ADVISORY_DETAIL_URLS)[self.source] % self.upstream_id
 
-    # # XXX: explanation of categorisation method?
-    # def affected_hosts(self):
-    #     queries = None
-    #
-    #     for package in self.binarypackage_set.all():
-    #         if package.architecture == 'all':
-    #             query = Q(package__name=package.package,
-    #                     package__host__release=package.release,
-    #                     )
-    #         else:
-    #             query = Q(package__name=package.package,
-    #                     package__host__release=package.release,
-    #                     package__architecture=package.architecture,
-    #                     )
-    #
-    #         if queries is None:
-    #             queries = query
-    #         else:
-    #             queries = queries | query
-    #
-    #     if queries is None:
-    #         return Host.objects.none()
-    #
-    #     return Host.objects.filter(queries).distinct().order_by('customer', 'name')
-
-    # Probably a hacky way of caching
-    host_names = set()
-
-    def affected_hosts(self):
-
-        try:  # Debug stuff, should be removed
-            if i_index:
-                pass
-        except:
-            global i_index
-            i_index = 0
-        i_index += 1
-        print(i_index, '\t', str(self))
-
-        # print(self.problem_set.all().all())
-        # print(type(self.problem_set.all()))
-
-        if len(self.host_names) == 0:
-            self.host_names = set([problem.host.name for problem in self.problem_set.all()])
-
-        # print('h', host_names)
-
-        return Host.objects.filter(name__in=self.host_names).distinct().order_by('customer', 'name')
-        # return Host.objects.filter(problem__advisory=self).distinct().order_by('customer', 'name')
-
-    def resolved_hosts(self):
-        unresolved = self.unresolved_hosts()
-        if unresolved is not None:
-            unresolved_ids = [host.id for host in unresolved]
-            return self.affected_hosts().exclude(id__in=unresolved_ids)
-        else:
-            return Host.objects.none()
-
-    def resolved_hosts_percentage(self):
-        affected = float(len(self.affected_hosts()))
-        resolved = float(len(self.resolved_hosts()))
-
-        return int(round(resolved/affected*100))
-
-    def unresolved_hosts(self):
-        try:
-            return self.affected_hosts().filter(self._unresolved_hosts_query())
-        except:
-            return Host.objects.none()
-
-    def unresolved_hosts_percentage(self):
-        affected = float(len(self.affected_hosts()))
-        unresolved = float(len(self.unresolved_hosts()))
-
-        return int(round(unresolved/affected*100))
 
 class SourcePackage(models.Model):
     """
@@ -210,13 +141,18 @@ class Problem(models.Model):
 
     advisory = models.ForeignKey(Advisory, help_text="Advisory that has caused this problem")
     host = models.ForeignKey(Host, help_text="Host which has the problem")
+
     installed_package_name = models.CharField(max_length=200, help_text="Name of binary package causing the problem", verbose_name='Package name')
     installed_package_version = models.CharField(max_length=200, help_text="Version of binary package causing the problem", verbose_name='Version')
     installed_package_architecture = models.CharField(max_length=200, help_text="Architecture of binary package causing the problem", verbose_name='Architecture')
     safe_package = models.ForeignKey(BinaryPackage, help_text="The safe package version provided by the advisory")
+
     created = models.DateTimeField(auto_now_add=True, verbose_name="Discovered")
     fixed = models.DateTimeField(null=True)
     fixed_by = models.CharField(null=True, choices=settings.FIX_REASONS, max_length=200, help_text="Way in which the problem was resolved")
+
+    class Meta:
+        verbose_name_plural = "problems"
 
     def __str__(self):
         return "%s: %s %s on %s" % (self.advisory, self.installed_package_name, self.installed_package_version, self.host)
@@ -224,6 +160,7 @@ class Problem(models.Model):
     def is_fixed(self):
         return self.fixed is not None and timezone.now() >= self.fixed
     is_fixed.boolean = True
+
 
 @receiver(post_save, sender=BinaryPackage)
 def cache_applicable_hosts_for_advisory_package(sender, **kwargs):
@@ -235,6 +172,7 @@ def cache_applicable_hosts_for_advisory_package(sender, **kwargs):
     advisory = advisory_package.advisory
     print("Considering advisory package %s (%s)" % (advisory_package.package, advisory_package.architecture))
     affected_packages = Package.objects.filter(name=advisory_package.package, architecture=advisory_package.architecture, host__release=advisory_package.release)
+
     for package in affected_packages:
         unsafe = apt_pkg.version_compare(str(package.version), str(advisory_package.safe_version)) < 0
         print("%s installed on %s is unsafe=%r due to installed version %s being <= %s" %(package.name, package.host, unsafe, package.version, advisory_package.safe_version))
@@ -242,6 +180,7 @@ def cache_applicable_hosts_for_advisory_package(sender, **kwargs):
             Problem.objects.get_or_create(advisory=advisory, host=package.host, installed_package_name=package.name, installed_package_version=package.version, installed_package_architecture=package.architecture, safe_package=advisory_package, fixed__isnull=True)
         else: # remove any problems that might have existed due to older incarnations of this advisory
             Problem.objects.filter(advisory=advisory, host=package.host, installed_package_name=package.name, installed_package_version=package.version, installed_package_architecture=package.architecture, safe_package=advisory_package).delete()
+
 
 @receiver(post_save, sender=Package)
 def add_package_to_host(sender, **kwargs):
@@ -252,6 +191,7 @@ def add_package_to_host(sender, **kwargs):
     package = kwargs.get('instance')
     print("installed %s on %s" % (package, package.host))
     advisory_packages = BinaryPackage.objects.filter(package=package.name, architecture=package.architecture, release=package.host.release)
+
     for advisory_package in advisory_packages:
         advisory = advisory_package.advisory
         unsafe = apt_pkg.version_compare(str(package.version), str(advisory_package.safe_version)) < 0
@@ -259,11 +199,14 @@ def add_package_to_host(sender, **kwargs):
         if unsafe:
             Problem.objects.get_or_create(advisory=advisory, host=package.host, installed_package_name=package.name, installed_package_version=package.version, installed_package_architecture=package.architecture, safe_package=advisory_package, fixed__isnull=True)
 
+
 @receiver(pre_delete, sender=Package)
 def remove_package_from_host(sender, **kwargs):
     """
     When a package is removed from a host find any problems removing it might solve.
     """
+
+    #TODO: Check if removing package resolves any affected hosts
 
     package = kwargs.get('instance')
     print("removed %s from %s" % (package, package.host))
