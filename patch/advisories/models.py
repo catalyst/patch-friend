@@ -38,11 +38,21 @@ class Advisory(models.Model):
 
     # This is a function while affected hosts is a variable... TODO: decide what to do
     def unresolved_hosts(self):
-        return Host.objects.filter(problem__fixed__isnull=False, problem__advisory=self)
+        # print("unresolved:", Host.objects.filter(problem__fixed__isnull=True, problem__advisory=self))
+        return Host.objects.filter(problem__fixed__isnull=True, problem__advisory=self)
 
     # Returns a set currently. TODO: do this properly
     def resolved_hosts(self):
-        return set(self.affected_hosts.all()) - set(self.unresolved_hosts().all())
+        # print("\n1")
+        # print(set(self.affected_hosts.distinct().all()))
+        # print("\n\n2")
+        # print(set(self.unresolved_hosts().distinct().all()))
+        # for prob in Problem.objects.filter(advisory=self) :
+        #     print(prob)
+        # print("\n\n3")
+        # print(set(self.affected_hosts.distinct().all()) - set(self.unresolved_hosts().distinct().all()))
+        # print("end\n")
+        return set(self.affected_hosts.distinct().all()) - set(self.unresolved_hosts().distinct().all())
 
     # These can be done much better. TODO: redo these
     def resolved_hosts_percentage(self):

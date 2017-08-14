@@ -51,8 +51,8 @@
                 {% regroup advisory.sourcepackage_set.all|dictsort:'release' by release as release_list %}
                 {% regroup advisory.sourcepackage_set.all by package as source_package_list %}
 
-                <tr class="{% if advisory.affected_hosts.count == 0 %}uninteresting{% else %} {% if not advisory.unresolved_hosts %}completed{% endif %}{% endif %}">
-                {# <tr class="{% if advisory.affected_hosts.count == 0 %}uninteresting{% endif %}">#}
+                <tr class="{% if advisory.affected_hosts.distinct.count == 0 %}uninteresting{% else %} {% if not advisory.unresolved_hosts %}completed{% endif %}{% endif %}">
+                {# <tr class="{% if advisory.affected_hosts.distinct.count == 0 %}uninteresting{% endif %}">#}
                     <td class="advisory-upstream-id"><img class="distro-icon" src="{% static 'reporting/icons/'|add:advisory.source|add:'.png' %}" alt="{{ advisory.source|advisory_source }}"><a href="{{ advisory.get_absolute_url }}">{{ advisory.upstream_id }}</a></td>
 
                     <td>{{ advisory.short_description }}</td>
@@ -90,7 +90,7 @@
 
                     <td class="advisory-issued">{{ advisory.issued|date:"Y-m-d" }}</td>
 
-                    <td> {# A progress bar showing the amount of hosts that have been patched. PROBLEM: debian shows all fixed when not#}
+                    <td> {# A progress bar showing the amount of hosts that have been patched. #}
                         <div class="progress">
                             <div class="progress-bar progress-bar-info" role="progressbar" style="width: {% if advisory.resolved_hosts %}{{ advisory.resolved_hosts_percentage }}{% else %}0{% endif %}%">
                             </div>
@@ -100,7 +100,7 @@
                     </td>
 
                     <td style="white-space: nowrap;"> {# Fraction of how many hosts have been patched #}
-                        {% if advisory.resolved_hosts %}{{ advisory.resolved_hosts|length }} ⁄ {% endif %}{% if advisory.affected_hosts %}{{ advisory.affected_hosts.count }}{% endif %}
+                        {% if advisory.resolved_hosts %}{{ advisory.resolved_hosts|length }} ⁄ {% endif %}{% if advisory.affected_hosts %}{{ advisory.affected_hosts.distinct.count }}{% endif %}
                     </td>
 
                     {% comment %}
@@ -114,7 +114,7 @@
                     </td>
 
                     <td style="white-space: nowrap;"> {# Fraction of how many hosts have been patched #}
-                        {% if advisory.resolved_hosts %}{{ advisory.resolved_hosts.count }} ⁄ {% endif %}{% if advisory.affected_hosts %}{{ advisory.affected_hosts.count }}{% endif %}
+                        {% if advisory.resolved_hosts %}{{ advisory.resolved_hosts.count }} ⁄ {% endif %}{% if advisory.affected_hosts %}{{ advisory.affected_hosts.distinct.count }}{% endif %}
                     </td>
                     {% endcomment %}
                 </tr>

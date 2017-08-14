@@ -16,6 +16,7 @@ from django.utils import timezone
 
 import requests
 import logging
+from hashlib import sha256
 
 from hosts.models import *
 
@@ -44,11 +45,21 @@ class Command(BaseCommand):
 
         all_database_hosts = Host.objects.filter(source='hostinfo')
         # print('all_database_hosts', all_database_hosts)
+        logging.info('all_database_hosts done')
         all_hostinfo_hosts = self.hostinfo_client.all_hosts_and_packages()
         # print('all_hostinfo_hosts', all_hostinfo_hosts)
+        logging.info('all_hostinfo_hosts done')
 
-        all_database_fingerprints = set([host.hostinfo_fingerprint for host in all_database_hosts])
-        all_hostinfo_fingerprints = set([host['metadata']['fingerprint'] for hostname, host in all_hostinfo_hosts.items()])
+        # import sys
+        # print(all_hostinfo_hosts)
+        # raise KeyboardInterrupt
+
+
+        all_database_fingerprints = {host.hostinfo_fingerprint for host in all_database_hosts}
+        all_hostinfo_fingerprints = {host['metadata']['fingerprint'] for hostname, host in all_hostinfo_hosts.items()}
+
+        # TODO: extract hash info
+
 
         new_hosts = all_hostinfo_fingerprints - all_database_fingerprints
         logging.debug('New hosts: ' + str(new_hosts))
@@ -60,12 +71,23 @@ class Command(BaseCommand):
         self.stdout.write("  %i hosts found (%i new)" % (len(all_hostinfo_fingerprints), len(new_hosts)))
 
         for hostname, host_data in all_hostinfo_hosts.items():
+            # print(host_data.keys()) #dict_keys(['metadata', 'packages', 'machineinfo'])
+            # print(host_data['metadata']) {'release': 'Ubuntu:xenial:16.04', 'hostid': 6030, 'hardware': 'x86_64', 'fingerprint': '9293fa592f8861ba', 'updated': '2017-08-14 04:12:21'}
+            # print(host_data['machineinfo']) [{'value': 'default', 'key': 'UMASKS'}, {'value': 'FullAuto-daily-MR', 'key': 'PATCHING'}, {'value': 'Catalyst', 'key': 'CLIENT'}, {'value': 'production', 'key': 'ROLE'}]
+
+            # raise KeyboardInterrupt
+
+            hostinfo_host_hash = sha256(json.dumps(sorted(host_data['machineinfo'], key=sorted), sort_keys=True).encode('utf-8')).hexdigest()
+
+
+            # TODO: add editing if hash has changed
             self.stdout.write("      updating %s..." % hostname, ending='')
             db_host, db_host_created = Host.objects.get_or_create(hostinfo_fingerprint=host_data['metadata']['fingerprint'], defaults={'hostinfo_id': host_data['metadata']['hostid'], 'customer': default_customer, 'name': hostname})
 
-            if db_host_created:
+            if db_host_created or (hostinfo_host_hash != db_host.host_hash):
                 tags = []
                 customer = None
+                HostImportedAttribute.objects.filter(host=db_host).delete()  # Clear any previous attributes that there might have been
                 for attribute in host_data['machineinfo']:
                     db_importedattributes, db_importedattributes_created = HostImportedAttribute.objects.get_or_create(host=db_host, key=attribute['key'], value=attribute['value'])
 
@@ -90,10 +112,13 @@ class Command(BaseCommand):
                         db_tag, db_tag_created = Tag.objects.get_or_create(name=tag, customer=db_customer)
                         db_host.tags.add(db_tag)
 
+                db_host.host_hash = hostinfo_host_hash
+                print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+
             try:
                 release = host_data['metadata']['release'].split(':')[1]
             except:
-                logging.critical(hostname + ' has no release!')
+                logging.error(hostname + ' has no release!')
                 release = ''
 
             try:
@@ -102,7 +127,7 @@ class Command(BaseCommand):
                     architecture = architecture.replace('i686','i386')
                     architecture = architecture.replace('x86_64','amd64')
             except:
-                logging.critical(hostname + ' has no architecture!')
+                logging.error(hostname + ' has no architecture!')
                 architecture = ''
 
             db_host.release = release
@@ -134,11 +159,12 @@ class Command(BaseCommand):
 
                 hostinfo_packages.add((package_name, package['version'], package_architecture))
 
-            # Any packages that are in hostinfo but not in database will be added ot daabase
+
+            # Any packages that are in hostinfo but not in database will be added to database
             packages_to_add = hostinfo_packages - database_packages
             # print("\n\npackages to add: ", packages_to_add, "\n")
 
-            # Any packages that are /not/ in hostinfo but are in database have been removed, so will be deleted form database
+            # Any packages that are /not/ in hostinfo but are in database have been removed, so will be deleted from database
             packages_to_remove = database_packages - hostinfo_packages
             # print("packages to remove: ", packages_to_remove, "\n")
 

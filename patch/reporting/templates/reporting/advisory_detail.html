@@ -35,7 +35,7 @@
 
         {# Show progress of servers patched. #}
         <tr style="separate-from-above">
-            <th>Progress</th><td>{% if advisory.resolved_hosts %}{{ advisory.resolved_hosts|length }} ⁄ {% endif %}{% if advisory.affected_hosts %}{{ advisory.affected_hosts.count }}{% endif %}</tb>
+            <th>Progress</th><td>{% if advisory.resolved_hosts %}{{ advisory.resolved_hosts|length }} ⁄ {% endif %}{% if advisory.affected_hosts %}{{ advisory.affected_hosts.distinct.count }}{% endif %}</tb>
         </tr>
 
         <tr class="separate-from-above">
@@ -47,6 +47,21 @@
         <tr class="separate-from-above">
             <th>Description</th><td>{{ advisory.description|ignore_none|paragraphbreaks }}</td>
         </tr>
+
+        {% comment %}
+
+        <tr class="separate-from-above">
+            <th>affected hosts (testing)</th><td>{{ advisory.affected_hosts.distinct.all|ignore_none|paragraphbreaks }}</td>
+        </tr>
+        <tr class="separate-from-above">
+            <th>resolved hosts (testing)</th><td>{{ advisory.resolved_hosts|ignore_none|paragraphbreaks }}</td>
+        </tr>
+        <tr class="separate-from-above">
+            <th>unresolved_hosts hosts (testing)</th><td>{{ advisory.unresolved_hosts.all|ignore_none|paragraphbreaks }}</td>
+        </tr>
+
+        {% endcomment %}
+
         <tr>
             <th>Required action</th><td>{{ advisory.action|ignore_none|paragraphbreaks }}</td>
         </tr>
@@ -130,7 +145,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% regroup unresolved_hosts by customer_name as host_list %}
+                        {% regroup unresolved_hosts|dictsort:"customer_name" by customer_name as host_list %}
                         {% for hosts in host_list %}
                             <tr>
                                 <td>{{ hosts.grouper }}</td>
@@ -163,7 +178,7 @@
                             </tr>
                         {% endfor %}
                     </tbody>
-                    </table>
+                </table>
             </td>
         </tr>
     </table>

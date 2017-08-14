@@ -33,6 +33,7 @@ class Host(models.Model):
     release = models.CharField(max_length=200, help_text="Operating system release.")
     updated = models.DateTimeField(auto_now_add=True, help_text="When this status was discovered.")
     source = models.CharField(choices=SOURCES, max_length=32, help_text="Source of this host's data.")
+    host_hash = models.CharField(max_length=64, null=True, help_text="The hash of all the fields of the object, used for detecting changes.")
 
     def __str__(self):
         return self.name
