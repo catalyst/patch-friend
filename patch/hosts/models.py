@@ -65,14 +65,6 @@ class HostImportedAttribute(models.Model):
 
 # Package models
 
-# class DebversionField(models.Field):
-#     """
-#     Field type from `postgresql-9.4-debversion' package in Debian.
-#     """
-#
-#     def db_type(self, connection):
-#         return 'debversion'
-
 class Package(models.Model):
     """
     Operating system package.

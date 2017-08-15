@@ -45,20 +45,14 @@ class Command(BaseCommand):
 
         all_database_hosts = Host.objects.filter(source='hostinfo')
         # print('all_database_hosts', all_database_hosts)
-        logging.info('all_database_hosts done')
+        # logging.info('all_database_hosts done')
         all_hostinfo_hosts = self.hostinfo_client.all_hosts_and_packages()
         # print('all_hostinfo_hosts', all_hostinfo_hosts)
-        logging.info('all_hostinfo_hosts done')
-
-        # import sys
-        # print(all_hostinfo_hosts)
-        # raise KeyboardInterrupt
+        # logging.info('all_hostinfo_hosts done')
 
 
         all_database_fingerprints = {host.hostinfo_fingerprint for host in all_database_hosts}
         all_hostinfo_fingerprints = {host['metadata']['fingerprint'] for hostname, host in all_hostinfo_hosts.items()}
-
-        # TODO: extract hash info
 
 
         new_hosts = all_hostinfo_fingerprints - all_database_fingerprints
@@ -71,16 +65,9 @@ class Command(BaseCommand):
         self.stdout.write("  %i hosts found (%i new)" % (len(all_hostinfo_fingerprints), len(new_hosts)))
 
         for hostname, host_data in all_hostinfo_hosts.items():
-            # print(host_data.keys()) #dict_keys(['metadata', 'packages', 'machineinfo'])
-            # print(host_data['metadata']) {'release': 'Ubuntu:xenial:16.04', 'hostid': 6030, 'hardware': 'x86_64', 'fingerprint': '9293fa592f8861ba', 'updated': '2017-08-14 04:12:21'}
-            # print(host_data['machineinfo']) [{'value': 'default', 'key': 'UMASKS'}, {'value': 'FullAuto-daily-MR', 'key': 'PATCHING'}, {'value': 'Catalyst', 'key': 'CLIENT'}, {'value': 'production', 'key': 'ROLE'}]
-
-            # raise KeyboardInterrupt
 
             hostinfo_host_hash = sha256(json.dumps(sorted(host_data['machineinfo'], key=sorted), sort_keys=True).encode('utf-8')).hexdigest()
 
-
-            # TODO: add editing if hash has changed
             self.stdout.write("      updating %s..." % hostname, ending='')
             db_host, db_host_created = Host.objects.get_or_create(hostinfo_fingerprint=host_data['metadata']['fingerprint'], defaults={'hostinfo_id': host_data['metadata']['hostid'], 'customer': default_customer, 'name': hostname})
 
@@ -113,7 +100,7 @@ class Command(BaseCommand):
                         db_host.tags.add(db_tag)
 
                 db_host.host_hash = hostinfo_host_hash
-                print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+                # print('Hash is different')
 
             try:
                 release = host_data['metadata']['release'].split(':')[1]
