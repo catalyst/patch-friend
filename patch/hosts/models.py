@@ -1,3 +1,6 @@
+import apt_pkg
+apt_pkg.init_system()
+
 from django.conf import settings
 from django.db import models
 
@@ -33,7 +36,7 @@ class Host(models.Model):
     release = models.CharField(max_length=200, help_text="Operating system release.")
     updated = models.DateTimeField(auto_now_add=True, help_text="When this status was discovered.")
     source = models.CharField(choices=SOURCES, max_length=32, help_text="Source of this host's data.")
-    host_hash = models.CharField(max_length=64, null=True, help_text="The hash of all the fields of the object, used for detecting changes.")
+    host_hash = models.CharField(max_length=64, null=True, help_text="The hash of host's machine info, used for detecting changes.")
 
     def __str__(self):
         return self.name
@@ -46,7 +49,26 @@ class Host(models.Model):
         return separator.join(sorted(list([tag.name.strip().lower() for tag in self.tags.all()]))).strip()
 
     def packages_affected_by_advisory(self, advisory):
-        return self.package_set.filter(advisory._affected_packages_query(self.release))
+        affected_packages = set()
+        advisory_packages = set(advisory.binarypackage_set.all())
+        advisory_package_names = {x.package for x in advisory_packages}
+
+        for host_package in self.package_set.filter(name__in=advisory_package_names):
+            for advisory_package in advisory_packages:
+                if (host_package.name == advisory_package.package) and (apt_pkg.version_compare(host_package.version, advisory_package.safe_version) < 0):
+                    affected_packages.add(host_package)
+
+        # # Debugging counter to gauge speed
+        # global i
+        # try:
+        #     i += 1
+        # except:
+        #     i = 1
+        # print(i)
+        # print(affected_packages)
+
+        return affected_packages
+        # return self.package_set.filter(advisory._affected_packages_query(self.release))
 
 class HostImportedAttribute(models.Model):
     """

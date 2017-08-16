@@ -27,6 +27,9 @@ class AdvisoryIndexView(SearchableListMixin, generic.ListView):
         # for advisory in context['advisory_list']:
             # print(advisory.problems)
             # print(advisory.affected_hosts.all, '\n')
+
+
+
         return context
 
 class AdvisoryDetailView(generic.DetailView):
@@ -50,9 +53,8 @@ class AdvisoryDetailView(generic.DetailView):
             binary_packages[package.release][package_key]['architectures'].append(package.architecture)
 
         unresolved_hosts = []
-        # print('context\n', context['object'])
+
         for host in context['object'].unresolved_hosts().distinct():
-            # print(host)
             host_dict = {}
             host_dict['tag_group'] = host.tag_group()
             host_dict.update(model_to_dict(host))
