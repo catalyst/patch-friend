@@ -325,25 +325,32 @@ class UbuntuFeed(object):
                     short_description=advisory_data.get('isummary', None)
                 )
                 db_advisory.save()
+
                 for release, release_data in {release:release_data for release, release_data in json_advisories[advisory]['releases'].items() if release in self.releases}.items():
-                    for package, package_data in release_data['sources'].items():
-                        db_srcpackage = SourcePackage(advisory=db_advisory, package=package, release=release, safe_version=package_data['version'])
+
+                    # Source packages
+                    for src_package, src_package_data in release_data['sources'].items():
+                        db_srcpackage = SourcePackage(advisory=db_advisory, package=src_package, release=release, safe_version=src_package_data['version'])
                         db_srcpackage.save()
-                        search_packages.add(package)
-                        search_packages.add(package_data['version'])
-                    for architecture in [architecture for architecture in release_data.get('archs', {'none': 'dummy'}).keys() if architecture in self.architectures]:
-                        for url in release_data['archs'][architecture]['urls'].keys():
-                            package_filename = url.split('/')[-1]
-                            if not package_filename.endswith('.deb'):
-                                continue
-                            binary_package_name = package_filename.split('_')[0]
-                            if not binary_package_name in release_data['binaries'].keys():
-                                continue
-                            binary_package_version = release_data['binaries'][binary_package_name]['version']  # Gets version of binary package
-                            db_binpackage = BinaryPackage(advisory=db_advisory, package=binary_package_name, release=release, safe_version=binary_package_version, architecture=architecture)
-                            db_binpackage.save()
-                            search_packages.add(binary_package_name)
-                            search_packages.add(binary_package_version)
+                        search_packages.add(src_package)
+                        search_packages.add(src_package_data['version'])
+
+                    # Binary packages
+                    for bin_package, bin_package_data in release_data['binaries'].items():
+                        bin_package_version = bin_package_data['version']
+
+                        # Goes through the architectures to see if the binary package is in them
+                        for architecture in [architecture for architecture in release_data.get('archs', {'none': 'dummy'}).keys() if architecture in self.architectures]:
+                            for url in release_data['archs'][architecture]['urls'].keys():
+
+                                # If binary package is in architecture, add package to db
+                                if bin_package == url.split('/')[-1].split('_')[0]:
+                                    # Adds a binary package in db for each architecture
+                                    db_binpackage = BinaryPackage(advisory=db_advisory, package=bin_package, release=release, safe_version=bin_package_version, architecture=architecture)
+                                    db_binpackage.save()
+                                    search_packages.add(bin_package)
+                                    search_packages.add(bin_package_version)
+
                 db_advisory.search_keywords = " ".join(search_packages)
                 db_advisory.save()
             except:
