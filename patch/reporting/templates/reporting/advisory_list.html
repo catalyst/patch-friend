@@ -37,10 +37,8 @@
                 <th>Summary</th>
                 <th>Releases</th>
                 <th>Source packages</th>
-                {# <th>unresolved hosts (testing)</th>#}
                 <th>Severity</th>
                 <th>Issued</th>
-                {# <th>resolved hosts (testing)</th>#}
                 <th>Progress</th>
                 <th>&nbsp;</th>
             </tr>
@@ -52,28 +50,10 @@
                 {% regroup advisory.sourcepackage_set.all by package as source_package_list %}
 
                 <tr class="{% if advisory.affected_hosts.distinct.count == 0 %}uninteresting{% else %} {% if not advisory.unresolved_hosts %}completed{% endif %}{% endif %}">
-                {# <tr class="{% if advisory.affected_hosts.distinct.count == 0 %}uninteresting{% endif %}">#}
                     <td class="advisory-upstream-id"><img class="distro-icon" src="{% static 'reporting/icons/'|add:advisory.source|add:'.png' %}" alt="{{ advisory.source|advisory_source }}"><a href="{{ advisory.get_absolute_url }}">{{ advisory.upstream_id }}</a></td>
 
                     <td>{{ advisory.short_description }}</td>
 
-
-                    {% comment %}
-                    <td>
-                        {% for affected_host in advisory.affected_hosts.distinct.all %}
-                            {{ affected_host }}
-                        {% endfor %}
-                    </td>
-
-                    <td>{{ advisory.affected_hosts.distinct.all }}</td>
-                    <td>{{ advisory.affected_hosts.distinct.count }}</td>
-                    <td>{{ advisory.unresolved_hosts.distinct.all }}</td>
-                    <td>{{ advisory.unresolved_hosts.distinct.count }}</td>
-                    <td>{{ advisory.resolved_hosts }}</td>
-                    <td>{{ advisory.resolved_hosts|length }}</td>
-                    {% endcomment %}
-
-                    {# {% comment %}#}
                     <td> {# All releases that an advisory applies to #}
                         {% for release in release_list %}
                             {{ release.grouper }}{% if not forloop.last %}, {% endif %}
@@ -102,21 +82,6 @@
                     <td style="white-space: nowrap;"> {# Fraction of how many hosts have been patched #}
                         {% if advisory.resolved_hosts %}{{ advisory.resolved_hosts|length }} ⁄ {% endif %}{% if advisory.affected_hosts %}{{ advisory.affected_hosts.distinct.count }}{% endif %}
                     </td>
-
-                    {% comment %}
-                    <td> {# A progress bar showing the amount of hosts that have been patched #}
-                        <div class="progress">
-                            <div class="progress-bar progress-bar-info" role="progressbar" style="width: {% if advisory.resolved_hosts %}{{ advisory.resolved_hosts_percentage }}{% else %}0{% endif %}%">
-                            </div>
-                            <div class="progress-bar progress-bar-warning" role="progressbar" style="width: {% if advisory.unresolved_hosts %}{{ advisory.unresolved_hosts_percentage }}{% else %}0{% endif %}%">
-                            </div>
-                        </div>
-                    </td>
-
-                    <td style="white-space: nowrap;"> {# Fraction of how many hosts have been patched #}
-                        {% if advisory.resolved_hosts %}{{ advisory.resolved_hosts.count }} ⁄ {% endif %}{% if advisory.affected_hosts %}{{ advisory.affected_hosts.distinct.count }}{% endif %}
-                    </td>
-                    {% endcomment %}
                 </tr>
             {% endfor %}
         </tbody>

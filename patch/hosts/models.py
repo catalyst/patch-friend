@@ -55,7 +55,10 @@ class Host(models.Model):
 
         for host_package in self.package_set.filter(name__in=advisory_package_names):
             for advisory_package in advisory_packages:
-                if (host_package.name == advisory_package.package) and (apt_pkg.version_compare(host_package.version, advisory_package.safe_version) < 0):
+                # print(host_package.version[2:] if host_package.version[1] == ':' else host_package.version)
+                if (host_package.name == advisory_package.package) and \
+                (apt_pkg.version_compare(host_package.version, advisory_package.safe_version) < 0):
+                # (apt_pkg.version_compare(host_package.version[2:] if host_package.version[1] == ':' else host_package.version, advisory_package.safe_version) < 0):
                     affected_packages.add(host_package)
 
         # # Debugging counter to gauge speed

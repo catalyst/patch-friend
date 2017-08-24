@@ -38,11 +38,11 @@ class Advisory(models.Model):
 
     # This is a function while affected hosts is a variable. TODO: decide what to do
     def unresolved_hosts(self):
-        return Host.objects.filter(problem__fixed__isnull=True, problem__advisory=self)
+        return Host.objects.filter(problem__fixed__isnull=True, problem__advisory=self).distinct()
 
     # Returns a set currently. TODO: do this properly
     def resolved_hosts(self):
-        return set(self.affected_hosts.distinct().all()) - set(self.unresolved_hosts().distinct().all())
+        return set(self.affected_hosts.distinct().all()) - set(self.unresolved_hosts().all())
 
 
     # These can be done much better. TODO: redo these
@@ -50,7 +50,7 @@ class Advisory(models.Model):
         return (float(len(self.resolved_hosts()))/float(self.affected_hosts.distinct().count()))*100
 
     def unresolved_hosts_percentage(self):
-        return ((float(self.unresolved_hosts().distinct().count()))/float(self.affected_hosts.distinct().count()))*100
+        return ((float(self.unresolved_hosts().count()))/float(self.affected_hosts.distinct().count()))*100
 
 
 
@@ -87,7 +87,7 @@ class SourcePackage(models.Model):
 
     advisory = models.ForeignKey(Advisory, help_text="Advisory to which this package belongs")
     package = models.CharField(max_length=200, help_text="Name of source package")
-    release = models.CharField(choices=settings.RELEASES,max_length=32, help_text="Specific release to which this package belongs")
+    release = models.CharField(choices=settings.RELEASES, max_length=32, help_text="Specific release to which this package belongs")
     safe_version = models.CharField(max_length=200, help_text="Package version that is to be considered 'safe' at the issue of this advisory")
 
     class Meta:
@@ -118,7 +118,7 @@ class BinaryPackage(models.Model):
     advisory = models.ForeignKey(Advisory, help_text="Advisory to which this package belongs")
     source_package = models.ForeignKey(SourcePackage, blank=True, null=True, help_text="If set, the source package from which this binary package was generated")
     package = models.CharField(max_length=200, help_text="Name of binary package")
-    release = models.CharField(choices=settings.RELEASES,max_length=32, help_text="Specific release to which this package belongs")
+    release = models.CharField(choices=settings.RELEASES, max_length=32, help_text="Specific release to which this package belongs")
     safe_version = models.CharField(max_length=200, null=True, help_text="Package version that is to be considered 'safe' at the issue of this advisory")
     architecture = models.CharField(max_length=200, null=True, help_text="Machine architecture")
 
@@ -175,7 +175,8 @@ def cache_applicable_hosts_for_advisory_package(sender, **kwargs):
     affected_packages = Package.objects.filter(name=advisory_package.package, architecture=advisory_package.architecture, host__release=advisory_package.release)
 
     for package in affected_packages:
-        unsafe = apt_pkg.version_compare(str(package.version), str(advisory_package.safe_version)) < 0
+        unsafe = apt_pkg.version_compare(package.version, advisory_package.safe_version) < 0
+        # unsafe = apt_pkg.version_compare(package.version[2:] if package.version[1] == ':' else package.version, advisory_package.safe_version) < 0
         print("%s installed on %s is unsafe=%r due to installed version %s being <= %s" %(package.name, package.host, unsafe, package.version, advisory_package.safe_version))
         if unsafe:
             Problem.objects.get_or_create(advisory=advisory, host=package.host, installed_package_name=package.name, installed_package_version=package.version, installed_package_architecture=package.architecture, safe_package=advisory_package, fixed__isnull=True)
@@ -195,7 +196,8 @@ def add_package_to_host(sender, **kwargs):
 
     for advisory_package in advisory_packages:
         advisory = advisory_package.advisory
-        unsafe = apt_pkg.version_compare(str(package.version), str(advisory_package.safe_version)) < 0
+        unsafe = apt_pkg.version_compare(package.version, advisory_package.safe_version) < 0
+        # unsafe = apt_pkg.version_compare(package.version[2:] if package.version[1] == ':' else package.version, advisory_package.safe_version) < 0
         print("%s installed on %s is unsafe=%r due to installed version %s being <= %s" %(package.name, package.host, unsafe, package.version, advisory_package.safe_version))
         if unsafe:
             Problem.objects.get_or_create(advisory=advisory, host=package.host, installed_package_name=package.name, installed_package_version=package.version, installed_package_architecture=package.architecture, safe_package=advisory_package, fixed__isnull=True)

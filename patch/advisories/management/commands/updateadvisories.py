@@ -26,7 +26,6 @@ import logging
 
 logging.basicConfig(format='%(asctime)s | %(levelname)s: %(message)s', level=logging.DEBUG)
 
-logging.info('test')
 
 class DebianFeed(object):
     """
@@ -39,6 +38,7 @@ class DebianFeed(object):
         self.cache_location = cache_location or "%s/advisory_cache/dsa" % settings.BASE_DIR
         self.releases = releases or (
             'jessie',
+            # 'stretch', # http://security.debian.org/debian-security/dists/stretch/updates/main/binary-amd64/Packages.bz2 doesn't exist (it has Packages.gz)
         )
         self.architectures = architectures or (
             'i386',
@@ -339,7 +339,7 @@ class UbuntuFeed(object):
                             binary_package_name = package_filename.split('_')[0]
                             if not binary_package_name in release_data['binaries'].keys():
                                 continue
-                            binary_package_version = package_filename.split('_')[1]
+                            binary_package_version = release_data['binaries'][binary_package_name]['version']  # Gets version of binary package
                             db_binpackage = BinaryPackage(advisory=db_advisory, package=binary_package_name, release=release, safe_version=binary_package_version, architecture=architecture)
                             db_binpackage.save()
                             search_packages.add(binary_package_name)

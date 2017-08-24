@@ -37,6 +37,10 @@ class Command(BaseCommand):
     @transaction.atomic
     def _update_hostinfo_hosts(self):
 
+        RESET_HOSTS = False
+        if RESET_HOSTS:
+            Package.objects.all().delete()
+
         default_customer, created = Customer.objects.get_or_create(name='catalyst')
         if created:
             default_customer.save()
@@ -66,6 +70,7 @@ class Command(BaseCommand):
 
         for hostname, host_data in all_hostinfo_hosts.items():
 
+            # Gets a hash of the host's attributes
             hostinfo_host_hash = sha256(json.dumps(sorted(host_data['machineinfo'], key=sorted), sort_keys=True).encode('utf-8')).hexdigest()
 
             self.stdout.write("      updating %s..." % hostname, ending='')
@@ -76,7 +81,7 @@ class Command(BaseCommand):
                 customer = None
                 HostImportedAttribute.objects.filter(host=db_host).delete()  # Clear any previous attributes that there might have been
                 for attribute in host_data['machineinfo']:
-                    db_importedattributes, db_importedattributes_created = HostImportedAttribute.objects.get_or_create(host=db_host, key=attribute['key'], value=attribute['value'])
+                    # db_importedattributes, db_importedattributes_created = HostImportedAttribute.objects.get_or_create(host=db_host, key=attribute['key'], value=attribute['value'])
 
                     if attribute['key'] == 'CLIENT':
                         value = attribute['value'].strip()
@@ -124,7 +129,6 @@ class Command(BaseCommand):
 
 
             # Does the packages
-            pkgs = []
             hostinfo_packages = set()
 
             logging.info("Getting packages from databse...")
@@ -155,13 +159,20 @@ class Command(BaseCommand):
             packages_to_remove = database_packages - hostinfo_packages
             # print("packages to remove: ", packages_to_remove, "\n")
 
-            # Removes each package that is in packages_to_remove from the database
-            for package in packages_to_remove:
-                Package.objects.filter(name=package[0], version=package[1], host=db_host, architecture=package[2]).delete()
+            if RESET_HOSTS:
+                # Add all packages from hostinfo (all packages have been previously removed)
+                for package in hostinfo_packages:
+                    Package(name=package[0], version=package[1], host=db_host, architecture=package[2]).save()
 
-            # Adds all the package from packages_to_add into the database
-            for package in packages_to_add:
-                Package(name=package[0], version=package[1], host=db_host, architecture=package[2]).save()
+            else:
+                # Removes each package that is in packages_to_remove from the database
+                for package in packages_to_remove:
+                    Package.objects.filter(name=package[0], version=package[1], host=db_host, architecture=package[2]).delete()
+
+                # Adds all the package from packages_to_add into the database
+                for package in packages_to_add:
+                    Package(name=package[0], version=package[1], host=db_host, architecture=package[2]).save()
+
 
             self.stdout.write("Done")
 

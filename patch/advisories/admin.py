@@ -5,7 +5,7 @@ from .models import *
 class BinaryPackageInline(admin.TabularInline):
     model = BinaryPackage
     extra = 0
-    readonly_fields=('source_package',)
+    readonly_fields = ('source_package',)
     fields = ('package', 'safe_version', 'architecture')
 
 class SourcePackageInline(admin.TabularInline):
