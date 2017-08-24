@@ -1,5 +1,6 @@
 from datetime import datetime
 import bz2
+import lzma
 import json
 import os
 import re
@@ -38,7 +39,7 @@ class DebianFeed(object):
         self.cache_location = cache_location or "%s/advisory_cache/dsa" % settings.BASE_DIR
         self.releases = releases or (
             'jessie',
-            # 'stretch', # http://security.debian.org/debian-security/dists/stretch/updates/main/binary-amd64/Packages.bz2 doesn't exist (it has Packages.gz)
+            'stretch',
         )
         self.architectures = architectures or (
             'i386',
@@ -138,16 +139,42 @@ class DebianFeed(object):
         # grab the release metadata from the repository
         for release_name in self.releases:
             release_metadata[release_name] = deb822.Release(requests.get("%s/dists/%s/updates/Release" % (self.security_apt_url, release_name)).text)
+            # print(release_metadata[release_name])
 
 
         # grab the binary package metadata for the desired architectures
         # this section attempts to make a reverse mapping for working out what binary packages a particular source package builds
         for release_name, release_metadatum in release_metadata.items():
+
+            # Chooses which filetype to use
+            if 'Packages.xz\n' in str(release_metadatum):
+                package_filetype = 'xz'
+            elif 'Packages.bz2\n' in str(release_metadatum):
+                package_filetype = 'bz2'
+            elif 'Packages.gz\n' in str(release_metadatum):
+                package_filetype = 'gz'
+            else:
+                # TODO Use no compression
+                print('Using no compression')
+                package_filetype = 'bz2'
+                pass
+
+            # print('Filetype is: ' + package_filetype)
+
             for component in release_metadatum['Components'].split():
                 for architecture in [architecture for architecture in release_metadatum['Architectures'].split() if architecture in self.architectures]:
-                    packages_url = "%s/dists/%s/%s/binary-%s/Packages.bz2" % (self.security_apt_url, release_name, component, architecture)
-                    logging.debug('packages_url: ' + packages_url)
-                    packages = deb822.Deb822.iter_paragraphs(bz2.decompress(requests.get(packages_url).content).decode("utf-8"))
+
+                    # Gets and decompresses the package data
+                    packages_url = "%s/dists/%s/%s/binary-%s/Packages.%s" % (self.security_apt_url, release_name, component, architecture, package_filetype)
+                    if package_filetype == 'xz':
+                        packages = deb822.Deb822.iter_paragraphs(lzma.decompress(requests.get(packages_url).content).decode("utf-8"))
+                    elif package_filetype == 'bz2':
+                        packages = deb822.Deb822.iter_paragraphs(bz2.decompress(requests.get(packages_url).content).decode("utf-8"))
+                    else:
+                        #TODO add support for other things
+                        packages = deb822.Deb822.iter_paragraphs(bz2.decompress(requests.get(packages_url).content).decode("utf-8"))
+
+
                     for binary_package in packages:
                         source_field = binary_package.get('Source', binary_package['Package']).split()
                         source_package_name = source_field[0]
