@@ -403,13 +403,13 @@ class Command(BaseCommand):
     help = 'Update all sources of advisories'
 
     def handle(self, *args, **options):
-        # self.stdout.write(self.style.MIGRATE_HEADING("Updating DSAs..."))
-        # feed = DebianFeed()
-        # feed.update_local_database()
-        #
-        # self.stdout.write(self.style.MIGRATE_HEADING("Updating USNs..."))
-        # feed = UbuntuFeed()
-        # feed.update_local_database()
+        self.stdout.write(self.style.MIGRATE_HEADING("Updating DSAs..."))
+        feed = DebianFeed()
+        feed.update_local_database()
+
+        self.stdout.write(self.style.MIGRATE_HEADING("Updating USNs..."))
+        feed = UbuntuFeed()
+        feed.update_local_database()
 
         self.stdout.write(self.style.MIGRATE_HEADING("Updating DLAs..."))
         feed = DebianFeed(cache_location='%s/advisory_cache/dla' % settings.BASE_DIR, list_location='data/DLA/list')
