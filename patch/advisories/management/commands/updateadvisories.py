@@ -24,8 +24,10 @@ import svn.remote
 from advisories.models import *
 
 import logging
+# from patch import settings
 
-logging.basicConfig(format='%(asctime)s | %(levelname)s: %(message)s', level=logging.DEBUG)
+if settings.DEBUG is True:
+    logging.basicConfig(format='%(asctime)s | %(levelname)s: %(message)s', level=logging.DEBUG)
 
 
 class DebianFeed(object):
@@ -64,9 +66,6 @@ class DebianFeed(object):
             pass
 
         try:
-            # dsa_list = self.client.cat('data/DSA/list').decode('utf-8')
-            # with open('%s/list' % self.cache_location, 'w') as dsa_list_file:
-            #     dsa_list_file.write(dsa_list)
             advisory_list = self.client.cat(self.list_location).decode('utf-8')
             with open('%s/list' % self.cache_location, 'w') as advisory_list_file:
                 advisory_list_file.write(advisory_list)
@@ -94,7 +93,7 @@ class DebianFeed(object):
                             'description': description,
                             'issued': issued,
                         }
-                        print(advisories[advisory])
+                        logging.debug(advisories[advisory])
                     issued = pytz.utc.localize(dateutil_parse(line.split('] ')[0].strip('[')))
                     advisory = line.split('] ')[-1].split()[0] # upstream ID of DSA/DLA
                     '''
@@ -128,7 +127,7 @@ class DebianFeed(object):
                         version = line.split()[3]
 
                     source_package = line.split()[2]
-                    print('source package: ', source_package)
+                    logging.debug('source package: ', source_package)
                     if source_package not in packages:
                         packages[source_package] = {}
                     packages[source_package][release] = version
@@ -173,7 +172,7 @@ class DebianFeed(object):
                 package_filetype = 'gz'
             else:
                 # TODO Use no compression
-                print('Using no compression')
+                logging.debug('Using no compression')
                 package_filetype = 'bz2'
                 pass
 
