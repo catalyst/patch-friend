@@ -13,9 +13,7 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 
-# BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BASE_DIR = '/home/filipvujicic/patchfriend/patch-friend/'
-
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
@@ -27,7 +25,6 @@ SECRET_KEY = '8xgmur-gapivo71bt5*gi7sm=mnf5x9emt4f7oy9q7o=uyz2fn'
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-
 
 # Application definition
 
@@ -182,7 +179,3 @@ SOURCE_PACKAGE_DETAIL_URLS = {
 }
 
 APTGET_COMMAND_STUB = 'sudo apt-get --only-upgrade install'
-
-ADVISORYCACHE_KEYS = {'affected_hosts': 'affected_hosts_%s',
-    'resolved_hosts': 'resolved_hosts_%s',
-    'unresolved_hosts': 'unresolved_hosts_%s'}
