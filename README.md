@@ -12,5 +12,6 @@ This application is a work in progress :)
 
 python-apt isn't installable from pip (it has silent deps on things which are not in PyPi), so you may need to:
 
-ln -s /usr/lib/python3/dist-packages/apt* $VIRTUAL_ENV/lib/python*/site-packages
+    ln -s /usr/lib/python3/dist-packages/apt* $VIRTUAL_ENV/lib/python*/site-packages
+   
 And install python-apt in the host OS.
