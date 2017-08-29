@@ -16,8 +16,8 @@ class AdvisoryIndexView(SearchableListMixin, generic.ListView):
     paginate_by = 25
     search_fields = ['upstream_id', 'short_description', 'description', 'search_keywords', 'source']
 
-    # def get_paginate_by(self, queryset):
-    #     return self.request.GET.get('paginate_by', self.paginate_by)
+    def get_paginate_by(self, queryset):
+        return self.request.GET.get('paginate_by', self.paginate_by)
 
     def get_context_data(self, **kwargs):  # NOTE: this is where the input dict is defined
         context = super(AdvisoryIndexView, self).get_context_data(**kwargs)
