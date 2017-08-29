@@ -35,7 +35,7 @@
 
         {# Show progress of servers patched. #}
         <tr style="separate-from-above">
-            <th>Progress</th><td>{% if advisory.resolved_hosts %}{{ advisory.resolved_hosts|length }} ⁄ {% endif %}{% if advisory.affected_hosts %}{{ advisory.affected_hosts.distinct.count }}{% endif %}</tb>
+            <th>Progress</th><td>{% if advisory.resolved_hosts %}{{ advisory.resolved_hosts.count }} ⁄ {% endif %}{% if advisory.affected_hosts %}{{ advisory.affected_hosts.distinct.count }}{% endif %}</tb>
         </tr>
 
         <tr class="separate-from-above">
@@ -54,7 +54,7 @@
             <th>affected hosts (testing)</th><td>{{ advisory.affected_hosts.distinct.all|ignore_none|paragraphbreaks }}</td>
         </tr>
         <tr class="separate-from-above">
-            <th>resolved hosts (testing)</th><td>{{ advisory.resolved_hosts|ignore_none|paragraphbreaks }}</td>
+            <th>resolved hosts (testing)</th><td>{{ advisory.resolved_hosts.all|ignore_none|paragraphbreaks }}</td>
         </tr>
         <tr class="separate-from-above">
             <th>unresolved_hosts hosts (testing)</th><td>{{ advisory.unresolved_hosts.all|ignore_none|paragraphbreaks }}</td>

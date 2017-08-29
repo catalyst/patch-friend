@@ -28,6 +28,9 @@ import logging
 
 if settings.DEBUG is True:
     logging.basicConfig(format='%(asctime)s | %(levelname)s: %(message)s', level=logging.DEBUG)
+else:
+    logging.basicConfig(format='%(asctime)s | %(levelname)s: %(message)s', level=logging.ERROR)
+
 
 
 class DebianFeed(object):
@@ -127,7 +130,7 @@ class DebianFeed(object):
                         version = line.split()[3]
 
                     source_package = line.split()[2]
-                    logging.debug('source package: ', source_package)
+                    logging.debug('source package: ' + str(source_package))
                     if source_package not in packages:
                         packages[source_package] = {}
                     packages[source_package][release] = version

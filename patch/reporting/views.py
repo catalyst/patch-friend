@@ -1,5 +1,5 @@
 import collections, csv
-# from urllib import urlencode
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404
@@ -16,20 +16,14 @@ class AdvisoryIndexView(SearchableListMixin, generic.ListView):
     paginate_by = 25
     search_fields = ['upstream_id', 'short_description', 'description', 'search_keywords', 'source']
 
-    def get_paginate_by(self, queryset):
-        return self.request.GET.get('paginate_by', self.paginate_by)
+    # def get_paginate_by(self, queryset):
+    #     return self.request.GET.get('paginate_by', self.paginate_by)
 
     def get_context_data(self, **kwargs):  # NOTE: this is where the input dict is defined
         context = super(AdvisoryIndexView, self).get_context_data(**kwargs)
         context['paginate_by'] = self.request.GET.get('paginate_by', self.paginate_by)
         context['q'] = self.request.GET.get('q', '')
-        # context['pagination_extra'] = urlencode({'q': context['q'], 'paginate_by': context['paginate_by']})
-        # for advisory in context['advisory_list']:
-            # print(advisory.problems)
-            # print(advisory.affected_hosts.all, '\n')
-
-
-
+        context['pagination_extra'] = urlencode({'q': context['q'], 'paginate_by': context['paginate_by']})
         return context
 
 class AdvisoryDetailView(generic.DetailView):

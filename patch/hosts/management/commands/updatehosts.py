@@ -22,6 +22,8 @@ from hosts.models import *
 import logging
 if settings.DEBUG is True:
     logging.basicConfig(format='%(asctime)s | %(levelname)s: %(message)s', level=logging.DEBUG)
+else:
+    logging.basicConfig(format='%(asctime)s | %(levelname)s: %(message)s', level=logging.ERROR)
 
 class HostinfoClient(object):
 
@@ -29,7 +31,6 @@ class HostinfoClient(object):
         self.hostinfo_base_url = hostinfo_base_url or 'http://hostinfo/'
 
     def all_hosts_and_packages(self):
-        # return json.loads(requests.get("%s/cgi-bin/hosts-and-packages.pl" % self.hostinfo_base_url).content)
         return requests.get("%s/cgi-bin/hosts-and-packages.pl" % self.hostinfo_base_url).json()
 
 class Command(BaseCommand):
