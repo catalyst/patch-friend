@@ -1,0 +1,88 @@
+{% extends 'reporting/base.html' %}
+
+{% load advisory_fields %}
+{% load bootstrap3 %}
+{% load staticfiles %}
+{% load humanize %}
+
+{% block title %}{{ host.name }} host detail{% endblock %}
+
+{% block content %}
+    <h2>{{ host.name }}</h2>
+    <table class="horizontal-table">
+        <tr>
+            <th>&nbsp;</th><td><a href="{% url 'host_list' %}">← Return to hosts</a></td>
+        </tr>
+        <tr class="separate-from-above">
+            <th>Release</th><td><img class="distro-icon" src="{% static 'reporting/icons/'|add:host.release|add:'.png' %}" alt="{{ host.release|advisory_release }}"> {{ host.release|advisory_release }}</td>
+        </tr>
+        <tr>
+            <th>Architecture</th><td>{{ host.architecture }}</td>
+        </tr>
+        <tr>
+            <th>Customer</th><td>{{ host.customer }}</td>
+        </tr>
+
+        <tr class="separate-from-above">
+            <th>Last checked</th><td>{{ host.updated }} ({{ host.updated|naturaltime }})</td>
+        </tr>
+        <tr class="separate-from-above">
+            <th>Open problems</th>
+            <td>
+                <table class="table package-table">
+                    <thead>
+                        <tr class="release-name-first">
+                            <th class="advisory-name">Advisory</th><th class="advisory-issued">Issued</th><th>Affected packages</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if host.unfixed_problems|length == 0 %}
+                            <tr>
+                                <td style="text-align: center;" colspan="3">No unsafe packages found!</td>
+                            </tr>
+                        {% else %}
+                            {% regroup host.unfixed_problems by advisory as advisory_list %}
+                            {% for advisory in advisory_list %}
+                                <tr>
+                                    <td><a href="{{ advisory.grouper.get_absolute_url }}">{{ advisory.grouper }}</a></td>
+                                    <td>{{ advisory.grouper.issued|naturaltime }}</td>
+                                    <td>{% for problem in advisory.list %}{{ problem.installed_package_name }} {{ problem.installed_package_version }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+                                </tr>
+                            {% endfor %}
+                        {% endif %}
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+        
+        <tr class="separate-from-above">
+            <th>Recently fixed problems</th>
+            <td>
+                <table class="table package-table">
+                    <thead>
+                        <tr class="release-name-first">
+                            <th class="advisory-name">Advisory</th><th class="advisory-issued">Issued</th><th>Fixed packages</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if host.fixed_problems|length == 0 %}
+                            <tr>
+                                <td style="text-align: center;" colspan="3">No fixed packages found! Go fix some problems :)</td>
+                            </tr>
+                        {% else %}
+                            {% regroup host.fixed_problems by advisory as advisory_list %}
+                            {% for advisory in advisory_list %}
+                                <tr>
+                                    <td><a href="{{ advisory.grouper.get_absolute_url }}">{{ advisory.grouper }}</a></td>
+                                    <td>{{ advisory.grouper.issued|naturaltime }}</td>
+                                    <td>{% for problem in advisory.list %}{{ problem.fixed|naturaltime }}: {{ problem.installed_package_name }} {{ problem.installed_package_version }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</td>
+                                </tr>
+                            {% endfor %}
+                        {% endif %}
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+{% endblock %}

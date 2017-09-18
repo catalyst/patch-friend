@@ -11,12 +11,12 @@ register = template.Library()
 @register.filter
 @stringfilter
 def advisory_source(value):
-    return dict(settings.ADVISORY_SOURCES)[value]
+    return dict(settings.ADVISORY_SOURCES).get(value, "Unrecognised source: %s" % value)
 
 @register.filter
 @stringfilter
 def advisory_release(value):
-    return dict(settings.RELEASES)[value]
+    return dict(settings.RELEASES).get(value, "Unrecognised release: %s (probably too new or ancient)" % value)
 
 @register.filter
 @stringfilter

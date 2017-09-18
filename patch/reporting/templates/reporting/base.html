@@ -5,6 +5,9 @@
 
 {% block bootstrap3_extra_head %}
     <script src="//ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.4/css/bootstrap-select.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.4/js/bootstrap-select.min.js"></script>
+
     <link href="{% static "catalyst_bootstrap/css/styles.css" %}" rel="stylesheet">
     <style type="text/css">
         .catalyst-scarf div {
@@ -45,13 +48,22 @@
             padding-top: 25px !important;
         }
 
-
         .release-name-first th {
             padding-top: 0 !important;
         }
 
         .package-name {
             width: 200px;
+            white-space: nowrap;
+        }
+
+        .advisory-name {
+            width: 100px;
+            white-space: nowrap;
+        }
+
+        .advisory-issued {
+            width: 180px;
             white-space: nowrap;
         }
 
@@ -115,9 +127,9 @@
             <div id="navbar" class="collapse navbar-collapse">
                 <a class="navbar-brand" href="/">Patch friend</a>
                 <ul class="nav navbar-nav">
-                    <li><a href="#">Overview</a></li>
-                    <li><a href="{% url 'advisory_list' %}">Advisories</a></li>
-                    <li><a href="#">Hosts</a></li>
+                    <li {% if request.path == '/' %}class="active"{% endif %}><a href="/">Overview</a></li>
+                    <li {% if '/advisories/' in request.path %}class="active"{% endif %}><a href="{% url 'advisory_list' %}">Advisories</a></li>
+                    <li {% if '/hosts/' in request.path %}class="active"{% endif %}><a href="{% url 'host_list' %}">Hosts</a></li>
                 </ul>
             </div>
         </div>

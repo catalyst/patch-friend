@@ -133,6 +133,7 @@ FIX_REASONS = (
 ADVISORY_SOURCES = (
     ('ubuntu', 'Ubuntu'),
     ('debian', 'Debian'),
+    ('hostinfo', 'What?')
 )
 
 # For advisories that have been triaged by a human
@@ -154,10 +155,10 @@ ADVISORY_SEVERITY_CLASSES = (
 
 # Current stable releases
 RELEASES = (
-    ('squeeze', 'Debian Squeeze 6.0'),
-    ('wheezy', 'Debian Wheezy 7.0'),
-    ('jessie', 'Debian Jessie 8.0'),
-    ('stretch', 'Debian Stretch 9.0'),
+    ('squeeze', 'Debian Squeeze 6'),
+    ('wheezy', 'Debian Wheezy 7'),
+    ('jessie', 'Debian Jessie 8'),
+    ('stretch', 'Debian Stretch 9'),
     ('precise', 'Ubuntu Precise LTS 12.04'),
     ('trusty', 'Ubuntu Trusty LTS 14.04',),
     ('xenial', 'Ubuntu Xenial LTS 16.04',)
