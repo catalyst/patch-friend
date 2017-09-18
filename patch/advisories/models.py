@@ -36,36 +36,22 @@ class Advisory(models.Model):
         return self.upstream_id
 
 
-    # This is a function while affected hosts is a variable. TODO: decide what to do
+    # Returns hosts that need to be patched
     def unresolved_hosts(self):
         return Host.objects.filter(problem__fixed__isnull=True, problem__advisory=self).distinct()
 
-    # Returns a set currently. TODO: do this properly
+    # Return hosts that had a problem with advisery but have since been patched
     def resolved_hosts(self):
-        return set(self.affected_hosts.distinct().all()) - set(self.unresolved_hosts().all())
+        return self.affected_hosts.distinct().exclude(id__in=[x.id for x in self.unresolved_hosts()])
 
 
-    # These can be done much better. TODO: redo these
+    # These might be able to be done better.
     def resolved_hosts_percentage(self):
-        return (float(len(self.resolved_hosts()))/float(self.affected_hosts.distinct().count()))*100
+        return (float( self.resolved_hosts().count()) / float(self.affected_hosts.distinct().count()) )*100
 
     def unresolved_hosts_percentage(self):
-        return ((float(self.unresolved_hosts().count()))/float(self.affected_hosts.distinct().count()))*100
+        return (float( self.unresolved_hosts().count()) / float(self.affected_hosts.distinct().count()) )*100
 
-
-
-    # def _affected_packages_query(self, release):
-    #     queries = None
-    #
-    #     for package in self.binarypackage_set.filter(release=release):
-    #         query = Q(name=package.package, version__lt=package.safe_version)
-    #
-    #         if queries is None:
-    #             queries = query
-    #         else:
-    #             queries = queries | query
-    #
-    #     return queries
 
     def get_absolute_url(self):
         from django.core.urlresolvers import reverse
@@ -176,7 +162,6 @@ def cache_applicable_hosts_for_advisory_package(sender, **kwargs):
 
     for package in affected_packages:
         unsafe = apt_pkg.version_compare(package.version, advisory_package.safe_version) < 0
-        # unsafe = apt_pkg.version_compare(package.version[2:] if package.version[1] == ':' else package.version, advisory_package.safe_version) < 0
         print("%s installed on %s is unsafe=%r due to installed version %s being <= %s" %(package.name, package.host, unsafe, package.version, advisory_package.safe_version))
         if unsafe:
             Problem.objects.get_or_create(advisory=advisory, host=package.host, installed_package_name=package.name, installed_package_version=package.version, installed_package_architecture=package.architecture, safe_package=advisory_package, fixed__isnull=True)
@@ -197,7 +182,6 @@ def add_package_to_host(sender, **kwargs):
     for advisory_package in advisory_packages:
         advisory = advisory_package.advisory
         unsafe = apt_pkg.version_compare(package.version, advisory_package.safe_version) < 0
-        # unsafe = apt_pkg.version_compare(package.version[2:] if package.version[1] == ':' else package.version, advisory_package.safe_version) < 0
         print("%s installed on %s is unsafe=%r due to installed version %s being <= %s" %(package.name, package.host, unsafe, package.version, advisory_package.safe_version))
         if unsafe:
             Problem.objects.get_or_create(advisory=advisory, host=package.host, installed_package_name=package.name, installed_package_version=package.version, installed_package_architecture=package.architecture, safe_package=advisory_package, fixed__isnull=True)

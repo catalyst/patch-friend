@@ -50,7 +50,6 @@ class Host(models.Model):
         """
         A string that can be used to group this host with others having the same tag set.
         """
-
         return separator.join(sorted(list([tag.name.strip().lower() for tag in self.tags.all()]))).strip()
 
     def packages_affected_by_advisory(self, advisory):
@@ -60,23 +59,10 @@ class Host(models.Model):
 
         for host_package in self.package_set.filter(name__in=advisory_package_names):
             for advisory_package in advisory_packages:
-                # print(host_package.version[2:] if host_package.version[1] == ':' else host_package.version)
-                if (host_package.name == advisory_package.package) and \
-                (apt_pkg.version_compare(host_package.version, advisory_package.safe_version) < 0):
-                # (apt_pkg.version_compare(host_package.version[2:] if host_package.version[1] == ':' else host_package.version, advisory_package.safe_version) < 0):
+                if (host_package.name == advisory_package.package) and (apt_pkg.version_compare(host_package.version, advisory_package.safe_version) < 0):
                     affected_packages.add(host_package)
 
-        # # Debugging counter to gauge speed
-        # global i
-        # try:
-        #     i += 1
-        # except:
-        #     i = 1
-        # print(i)
-        # print(affected_packages)
-
         return affected_packages
-        # return self.package_set.filter(advisory._affected_packages_query(self.release))
 
     def unfixed_problems(self):
         return self.problem_set.filter(models.Q(fixed__isnull=True) | models.Q(fixed__gt=timezone.now())).order_by('-advisory__issued')

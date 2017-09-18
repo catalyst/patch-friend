@@ -78,7 +78,7 @@
                     </td>
 
                     <td style="white-space: nowrap;"> {# Fraction of how many hosts have been patched #}
-                        {% if advisory.resolved_hosts %}{{ advisory.resolved_hosts|length }} ⁄ {% endif %}{% if advisory.affected_hosts %}{{ advisory.affected_hosts.distinct.count }}{% endif %}
+                        {% if advisory.resolved_hosts %}{{ advisory.resolved_hosts.count }} ⁄ {% endif %}{% if advisory.affected_hosts %}{{ advisory.affected_hosts.distinct.count }}{% endif %}
                     </td>
                 </tr>
             {% endfor %}

@@ -15,12 +15,15 @@ from django.db import transaction
 from django.utils import timezone
 
 import requests
-import logging
 from hashlib import sha256
 
 from hosts.models import *
 
-logging.basicConfig(format='%(asctime)s | %(levelname)s: %(message)s', level=logging.DEBUG)
+import logging
+if settings.DEBUG is True:
+    logging.basicConfig(format='%(asctime)s | %(levelname)s: %(message)s', level=logging.DEBUG)
+else:
+    logging.basicConfig(format='%(asctime)s | %(levelname)s: %(message)s', level=logging.ERROR)
 
 class HostinfoClient(object):
 
@@ -28,7 +31,6 @@ class HostinfoClient(object):
         self.hostinfo_base_url = hostinfo_base_url or 'http://hostinfo/'
 
     def all_hosts_and_packages(self):
-        # return json.loads(requests.get("%s/cgi-bin/hosts-and-packages.pl" % self.hostinfo_base_url).content)
         return requests.get("%s/cgi-bin/hosts-and-packages.pl" % self.hostinfo_base_url).json()
 
 class Command(BaseCommand):
@@ -48,10 +50,10 @@ class Command(BaseCommand):
         self.stdout.write("  Wrangling all host data (this will take a minute or two)... ", ending='')
 
         all_database_hosts = Host.objects.filter(source='hostinfo')
-        # print('all_database_hosts', all_database_hosts)
+        # logging.debug('all_database_hosts' + str(all_database_hosts))
         # logging.info('all_database_hosts done')
         all_hostinfo_hosts = self.hostinfo_client.all_hosts_and_packages()
-        # print('all_hostinfo_hosts', all_hostinfo_hosts)
+        # logging.debug('all_hostinfo_hosts' + str(all_hostinfo_hosts))
         # logging.info('all_hostinfo_hosts done')
 
 
@@ -105,7 +107,7 @@ class Command(BaseCommand):
                         db_host.tags.add(db_tag)
 
                 db_host.host_hash = hostinfo_host_hash
-                # print('Hash is different')
+                # logging.debug('Hash is different')
 
             try:
                 release = host_data['metadata']['release'].split(':')[1]
@@ -133,7 +135,7 @@ class Command(BaseCommand):
 
             logging.info("Getting packages from databse...")
             database_packages = set(Package.objects.filter(host=db_host).values_list("name", "version", "architecture"))
-            # print(database_packages)
+            # logging.debug(database_packages)
 
             # for every package in hostinfo host...
             for package in host_data['packages']:
@@ -153,11 +155,11 @@ class Command(BaseCommand):
 
             # Any packages that are in hostinfo but not in database will be added to database
             packages_to_add = hostinfo_packages - database_packages
-            # print("\n\npackages to add: ", packages_to_add, "\n")
+            # logging.debug("\n\npackages to add: " + str(packages_to_add))
 
             # Any packages that are /not/ in hostinfo but are in database have been removed, so will be deleted from database
             packages_to_remove = database_packages - hostinfo_packages
-            # print("packages to remove: ", packages_to_remove, "\n")
+            # logging.debug("packages to remove: " + str(packages_to_remove))
 
             if RESET_HOSTS:
                 # Add all packages from hostinfo (all packages have been previously removed)

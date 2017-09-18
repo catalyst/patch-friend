@@ -68,10 +68,6 @@ class AdvisoryIndexView(SearchableListMixin, generic.ListView):
         context = super(AdvisoryIndexView, self).get_context_data(**kwargs)
         context['paginate_by'] = self.request.GET.get('paginate_by', self.paginate_by)
         context['q'] = self.request.GET.get('q', '')
-        # for advisory in context['advisory_list']:
-            # print(advisory.problems)
-            # print(advisory.affected_hosts.all, '\n')
-
         return context
 
 class AdvisoryDetailView(generic.DetailView):
