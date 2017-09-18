@@ -1,0 +1,66 @@
+{% extends 'reporting/base.html' %}
+
+{% load humanize %}
+{% load bootstrap3 %}
+{% load advisory_fields %}
+{% load staticfiles %}
+
+{% block title %}Host list{% endblock %}
+
+{% block content %}
+    <form class="separate-from-above form-inline" method="GET">
+        <div class="search-field-group form-group pull-right has-feedback">
+            <select class="form-control submit-automatically" name="customer">
+                    <option value='' {% if request_customer == '' %}selected{% endif %}>Select customer...</option>
+                {% for customer in customer_list %}
+                    <option value="{{ customer.name }}" {% if customer.name == request_customer %}selected{% endif %}>{{ customer.name }}</option>
+                {% endfor %}
+            </select>
+            <input type="text" class="hasclear form-control" placeholder="Search..." name="q" value="{{ q }}">
+             <span class="clearer glyphicon glyphicon-remove-circle form-control-feedback"></span>
+        </div>
+
+        <div class="form-group">
+            Show
+            <select class="form-control submit-automatically" name="paginate_by">
+                <option {% if paginate_by == '25' %}selected{% endif %}>25</option>
+                <option {% if paginate_by == '50' %}selected{% endif %}>50</option>
+                <option {% if paginate_by == '75' %}selected{% endif %}>75</option>
+                <option {% if paginate_by == '100' %}selected{% endif %}>100</option>
+            </select>
+            hosts per page. Found {{ paginator.count|apnumber }} {% if q != '' %}matching{% endif %} host{{ paginator.count|pluralize:"s" }}.
+
+        </div>
+    </form>
+
+
+    <table class="table separate-from-above">
+        <thead>
+            <tr>
+                <th>Hostname</th>
+                <th>Customer</th>
+                <th>Release</th>
+                <th>Architecture</th>
+                <th>Unsafe<br>packages</th>
+                <th>Fixed<br>packages</th>
+                <th>&nbsp;</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for host in object_list %}
+                <tr>
+                    <td><img class="distro-icon" src="{% static 'reporting/icons/'|add:host.release|add:'.png' %}" alt="{{ host.release }}"><a href="{{ host.get_absolute_url }}">{{ host }}</a></td>
+                    <td>{{ host.customer }}</td>
+                    <td>{{ host.release }}</td>
+                    <td>{{ host.architecture }}</td>
+                    <td>{{ host.unfixed_problems.count }}</td>
+                    <td>{{ host.fixed_problems.count }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="text-center">
+        {% bootstrap_pagination page_obj extra=request.GET.urlencode %}
+    </div>
+{% endblock %}

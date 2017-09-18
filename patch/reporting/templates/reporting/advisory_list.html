@@ -8,8 +8,6 @@
 {% block title %}Advisory list{% endblock %}
 
 {% block content %}
-    <h2>Newest advisories</h2>
-
     <form class="separate-from-above form-inline" method="GET">
         <div class="search-field-group form-group pull-right has-feedback">
             <input type="text" class="hasclear form-control" placeholder="Search..." name="q" value="{{ q }}">
@@ -88,6 +86,6 @@
     </table>
 
     <div class="text-center">
-        {% bootstrap_pagination page_obj extra=pagination_extra %}
+        {% bootstrap_pagination page_obj extra=request.GET.urlencode %}
     </div>
 {% endblock %}

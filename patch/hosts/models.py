@@ -3,6 +3,7 @@ apt_pkg.init_system()
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 # Customer models
 
@@ -41,6 +42,10 @@ class Host(models.Model):
     def __str__(self):
         return self.name
 
+    def get_absolute_url(self):
+        from django.core.urlresolvers import reverse
+        return reverse('host_detail', args=(self.name, ))
+
     def tag_group(self, separator=", "):
         """
         A string that can be used to group this host with others having the same tag set.
@@ -72,6 +77,12 @@ class Host(models.Model):
 
         return affected_packages
         # return self.package_set.filter(advisory._affected_packages_query(self.release))
+
+    def unfixed_problems(self):
+        return self.problem_set.filter(models.Q(fixed__isnull=True) | models.Q(fixed__gt=timezone.now())).order_by('-advisory__issued')
+
+    def fixed_problems(self):
+        return self.problem_set.filter(models.Q(fixed__isnull=False) | models.Q(fixed__lte=timezone.now())).order_by('-advisory__issued')
 
 class HostImportedAttribute(models.Model):
     """
