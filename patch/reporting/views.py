@@ -1,7 +1,7 @@
 import collections, csv
 
 from django.conf import settings
-from django.db.models import Q, Count, Case, When, IntegerField
+from django.db.models import Q, Count, Case, When, IntegerField, OuterRef, Subquery
 from django.forms import model_to_dict
 from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404
@@ -25,13 +25,16 @@ class HostIndexView(SearchableListMixin, generic.ListView):
         queryset = super(HostIndexView, self).get_queryset(**kwargs)
         if 'customer' in self.request.GET and len(self.request.GET['customer']) > 0:
             queryset = queryset.filter(customer__name=self.request.GET['customer'])
-        
+
         queryset = queryset.annotate(
-            problem_count=Count(
-                Case(
-                    When((Q(problem__fixed__isnull=True) | Q(problem__fixed__gt=timezone.now())), then=1),
-                    output_field=IntegerField(),
-                )
+            problem_count=Subquery(
+                Problem.objects.filter(
+                    fixed__isnull=True,
+                    host=OuterRef('pk')
+                ).values('host')
+                .annotate(cnt=Count('pk'))
+                .values('cnt'),
+                output_field=IntegerField()
             )
         ).order_by('-problem_count')
 
@@ -40,7 +43,7 @@ class HostIndexView(SearchableListMixin, generic.ListView):
     def get_paginate_by(self, queryset):
         return self.request.GET.get('paginate_by', self.paginate_by)
 
-    def get_context_data(self, **kwargs):  # NOTE: this is where the input dict is defined
+    def get_context_data(self, **kwargs):
         context = super(HostIndexView, self).get_context_data(**kwargs)
         context['customer_list'] = Customer.objects.order_by('name').distinct()
         context['paginate_by'] = self.request.GET.get('paginate_by', self.paginate_by)
@@ -64,7 +67,7 @@ class AdvisoryIndexView(SearchableListMixin, generic.ListView):
     def get_paginate_by(self, queryset):
         return self.request.GET.get('paginate_by', self.paginate_by)
 
-    def get_context_data(self, **kwargs):  # NOTE: this is where the input dict is defined
+    def get_context_data(self, **kwargs):
         context = super(AdvisoryIndexView, self).get_context_data(**kwargs)
         context['paginate_by'] = self.request.GET.get('paginate_by', self.paginate_by)
         context['q'] = self.request.GET.get('q', '')
