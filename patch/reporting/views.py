@@ -2,6 +2,7 @@ import collections, csv
 
 from django.conf import settings
 from django.db.models import Q, Count, Case, When, IntegerField, OuterRef, Subquery
+from django.db.models.functions import Coalesce
 from django.forms import model_to_dict
 from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404
@@ -27,7 +28,7 @@ class HostIndexView(SearchableListMixin, generic.ListView):
             queryset = queryset.filter(customer__name=self.request.GET['customer'])
 
         queryset = queryset.annotate(
-            problem_count=Subquery(
+            problem_count=Coalesce(Subquery(
                 Problem.objects.filter(
                     fixed__isnull=True,
                     host=OuterRef('pk')
@@ -35,7 +36,7 @@ class HostIndexView(SearchableListMixin, generic.ListView):
                 .annotate(cnt=Count('pk'))
                 .values('cnt'),
                 output_field=IntegerField()
-            )
+            ), 0)
         ).order_by('-problem_count')
 
         return queryset
